@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="my">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Malartang Order</title>
+    <meta
+      name="description"
+      content="Malartang ဆိုင်အတွက် menu ကြည့်ပြီး dine-in, takeaway, delivery order တင်နိုင်တဲ့ website"
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Malartang home">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span>
+          <strong>Malartang</strong>
+          <small>မားလာတန် အော်ဒါ</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#menu">Menu</a>
+        <a href="#cart">Order</a>
+        <a href="#orders">Orders</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="intro">
+        <div class="intro-copy">
+          <p class="eyebrow">Hot pot • Dry mala • Skewers</p>
+          <h1>ဆိုင်မှာစားမလား၊ အွန်လိုင်းကနေမှာမလား။</h1>
+          <p class="intro-text">
+            ကြိုက်တဲ့ဟင်းပွဲနဲ့ topping တွေကိုရွေး၊ quantity ထည့်ပြီး order ticket ကိုချက်ချင်းထုတ်နိုင်ပါတယ်။
+          </p>
+          <div class="quick-stats" aria-label="Shop highlights">
+            <span>Spice level ရွေးနိုင်</span>
+            <span>Delivery / Pickup</span>
+            <span>Ticket copy & print</span>
+          </div>
+        </div>
+        <figure class="hero-media">
+          <img
+            src="./assets/malatang-hero.png"
+            alt="မားလာဟော့ပေါ့ပန်းကန်ထဲမှာ အသီးအရွက်၊ တိုဖူး၊ အသား၊ ခေါက်ဆွဲများပါဝင်သော ပူပူနွေးနွေးဟင်းပွဲ"
+          />
+        </figure>
+      </section>
+
+      <section class="order-mode-band" aria-label="Order type">
+        <div>
+          <p class="section-kicker">Order type</p>
+          <h2>ဘယ်လိုမှာမလဲ</h2>
+        </div>
+        <div class="mode-control" role="group" aria-label="Choose order type">
+          <button class="mode-button is-active" type="button" data-mode="dine-in">ဆိုင်မှာစားမယ်</button>
+          <button class="mode-button" type="button" data-mode="takeaway">Pickup</button>
+          <button class="mode-button" type="button" data-mode="delivery">Delivery</button>
+        </div>
+      </section>
+
+      <section class="workspace" id="menu">
+        <div class="menu-pane">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Menu</p>
+              <h2>မားလာ menu</h2>
+            </div>
+            <label class="search-box">
+              <span class="sr-only">Search menu</span>
+              <input id="searchInput" type="search" placeholder="ရှာရန်" autocomplete="off" />
+            </label>
+          </div>
+
+          <div class="category-tabs" id="categoryTabs" aria-label="Menu categories"></div>
+          <div class="menu-grid" id="menuList"></div>
+        </div>
+
+        <aside class="cart-pane" id="cart" aria-label="Current order">
+          <div class="cart-sticky">
+            <div class="section-heading compact">
+              <div>
+                <p class="section-kicker">Your order</p>
+                <h2>အော်ဒါ</h2>
+              </div>
+              <button class="ghost-button" id="clearCartButton" type="button">ရှင်းမယ်</button>
+            </div>
+
+            <div id="cartItems" class="cart-items empty-cart">
+              <p>Menu ထဲက item တွေကိုရွေးပြီး order စတင်ပါ။</p>
+            </div>
+
+            <form id="orderForm" class="order-form">
+              <div class="form-row">
+                <label>
+                  <span>ဟင်းရည်</span>
+                  <select name="broth">
+                    <option value="Signature spicy broth">Signature spicy broth</option>
+                    <option value="Mild tomato broth">Mild tomato broth</option>
+                    <option value="Dry mala mix">Dry mala mix</option>
+                    <option value="Clear soup">Clear soup</option>
+                  </select>
+                </label>
+                <label>
+                  <span>အစပ်</span>
+                  <select name="spice">
+                    <option value="Mild">Mild</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Hot">Hot</option>
+                    <option value="Extra hot">Extra hot</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-row">
+                <label>
+                  <span id="locationLabel">စားပွဲနံပါတ်</span>
+                  <input name="location" type="text" placeholder="ဥပမာ T-05" />
+                </label>
+                <label>
+                  <span>ငွေပေးချေမှု</span>
+                  <select name="payment">
+                    <option value="Cash">Cash</option>
+                    <option value="KPay">KPay</option>
+                    <option value="KBZPay">KBZPay</option>
+                    <option value="WavePay">WavePay</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                <span>နာမည်</span>
+                <input name="customerName" type="text" placeholder="နာမည်" autocomplete="name" />
+              </label>
+
+              <label>
+                <span>ဖုန်းနံပါတ်</span>
+                <input name="phone" type="tel" placeholder="09..." autocomplete="tel" />
+              </label>
+
+              <label class="address-field" hidden>
+                <span>လိပ်စာ</span>
+                <textarea name="address" rows="3" placeholder="Delivery လိပ်စာ"></textarea>
+              </label>
+
+              <label>
+                <span>မှတ်ချက်</span>
+                <textarea name="note" rows="3" placeholder="ဥပမာ ကြက်သွန်နည်းနည်း၊ sauce သီးသန့်"></textarea>
+              </label>
+
+              <div class="summary" aria-live="polite">
+                <div>
+                  <span>Subtotal</span>
+                  <strong id="subtotalText">0 MMK</strong>
+                </div>
+                <div>
+                  <span>Service</span>
+                  <strong id="serviceText">0 MMK</strong>
+                </div>
+                <div class="total-row">
+                  <span>Total</span>
+                  <strong id="totalText">0 MMK</strong>
+                </div>
+              </div>
+
+              <p class="form-error" id="formError" role="alert"></p>
+              <button class="primary-button" type="submit">Order တင်မယ်</button>
+            </form>
+          </div>
+        </aside>
+      </section>
+
+      <section class="orders-section" id="orders">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Order board</p>
+            <h2>ဒီ browser ထဲက orders</h2>
+          </div>
+          <button class="ghost-button" id="exportOrdersButton" type="button">CSV ထုတ်မယ်</button>
+        </div>
+        <div class="order-board" id="orderBoard"></div>
+      </section>
+    </main>
+
+    <dialog class="ticket-dialog" id="ticketDialog">
+      <div class="dialog-header">
+        <div>
+          <p class="section-kicker">Order ticket</p>
+          <h2 id="ticketTitle">Order ready</h2>
+        </div>
+        <button class="icon-button" id="closeDialogButton" type="button" aria-label="Close ticket">×</button>
+      </div>
+      <pre id="ticketText" class="ticket-text"></pre>
+      <div class="dialog-actions">
+        <button class="ghost-button" id="shareTicketButton" type="button">Share</button>
+        <button class="ghost-button" id="copyTicketButton" type="button">Copy</button>
+        <button class="primary-button" id="printTicketButton" type="button">Print</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
