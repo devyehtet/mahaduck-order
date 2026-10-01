@@ -3,7 +3,7 @@ const menu = [
     id: "signature-bowl",
     name: "Signature Malatang Bowl",
     category: "Bowls",
-    price: 6500,
+    price: 89,
     description: "မားလာဟင်းရည်၊ အသီးအရွက်၊ mushroom၊ tofu၊ noodle စုံစုံလင်လင်",
     tags: ["Popular", "Soup"],
   },
@@ -11,7 +11,7 @@ const menu = [
     id: "dry-mala",
     name: "Dry Mala Mix",
     category: "Bowls",
-    price: 7000,
+    price: 99,
     description: "မားလာဆီမွှေးနဲ့ dry mix အဖြစ်တင်ပေးတဲ့ spicy bowl",
     tags: ["Hot", "Dry"],
   },
@@ -19,7 +19,7 @@ const menu = [
     id: "clear-soup",
     name: "Clear Soup Bowl",
     category: "Bowls",
-    price: 5500,
+    price: 79,
     description: "အစပ်မစားသူတွေအတွက် clear broth၊ vegetable နဲ့ noodle",
     tags: ["Mild"],
   },
@@ -27,7 +27,7 @@ const menu = [
     id: "beef-slice",
     name: "Beef Slice",
     category: "Meat",
-    price: 2500,
+    price: 35,
     description: "ဟင်းရည်ထဲမှာနူးညံ့အောင်ချက်ပေးတဲ့ beef slice",
     tags: ["Add-on"],
   },
@@ -35,7 +35,7 @@ const menu = [
     id: "chicken-slice",
     name: "Chicken Slice",
     category: "Meat",
-    price: 1800,
+    price: 28,
     description: "ပါးပါးလှီးထားတဲ့ chicken slice",
     tags: ["Add-on"],
   },
@@ -43,7 +43,7 @@ const menu = [
     id: "pork-belly",
     name: "Pork Belly",
     category: "Meat",
-    price: 2200,
+    price: 32,
     description: "ဆီစိမ့်ပြီးအရသာပြည့်တဲ့ pork belly slice",
     tags: ["Rich"],
   },
@@ -51,7 +51,7 @@ const menu = [
     id: "fish-ball",
     name: "Fish Ball Skewer",
     category: "Skewers",
-    price: 1200,
+    price: 20,
     description: "မားလာ bowl နဲ့လိုက်ဖက်တဲ့ fish ball skewer",
     tags: ["Skewer"],
   },
@@ -59,7 +59,7 @@ const menu = [
     id: "tofu-skin",
     name: "Tofu Skin Roll",
     category: "Skewers",
-    price: 1000,
+    price: 18,
     description: "ဟင်းရည်စုပ်ကောင်းတဲ့ tofu skin roll",
     tags: ["Vegetarian"],
   },
@@ -67,7 +67,7 @@ const menu = [
     id: "mushroom-mix",
     name: "Mushroom Mix",
     category: "Vegetables",
-    price: 1500,
+    price: 25,
     description: "Enoki, shiitake, wood ear mushroom စုံစုံလင်လင်",
     tags: ["Fresh"],
   },
@@ -75,7 +75,7 @@ const menu = [
     id: "bok-choy",
     name: "Bok Choy",
     category: "Vegetables",
-    price: 900,
+    price: 18,
     description: "ဟင်းရည်ထဲမှာလတ်လတ်ဆတ်ဆတ်ထည့်ပေးတဲ့ bok choy",
     tags: ["Fresh"],
   },
@@ -83,7 +83,7 @@ const menu = [
     id: "lotus-root",
     name: "Lotus Root",
     category: "Vegetables",
-    price: 1000,
+    price: 18,
     description: "Crunchy texture ကြိုက်သူတွေအတွက် lotus root",
     tags: ["Crunchy"],
   },
@@ -91,7 +91,7 @@ const menu = [
     id: "instant-noodle",
     name: "Instant Noodle",
     category: "Noodles",
-    price: 900,
+    price: 15,
     description: "မားလာဟင်းရည်နဲ့စားကောင်းတဲ့ noodle add-on",
     tags: ["Add-on"],
   },
@@ -99,7 +99,7 @@ const menu = [
     id: "glass-noodle",
     name: "Glass Noodle",
     category: "Noodles",
-    price: 1000,
+    price: 18,
     description: "ဟင်းရည်စုပ်ပြီးနူးညံ့တဲ့ glass noodle",
     tags: ["Add-on"],
   },
@@ -107,7 +107,7 @@ const menu = [
     id: "thai-tea",
     name: "Thai Milk Tea",
     category: "Drinks",
-    price: 1800,
+    price: 35,
     description: "အစပ်ဖြေဖို့ creamy Thai milk tea",
     tags: ["Cold"],
   },
@@ -115,7 +115,7 @@ const menu = [
     id: "lemon-tea",
     name: "Lemon Tea",
     category: "Drinks",
-    price: 1500,
+    price: 30,
     description: "ချဉ်ချိုအေးအေး lemon tea",
     tags: ["Cold"],
   },
@@ -123,7 +123,7 @@ const menu = [
     id: "water",
     name: "Water",
     category: "Drinks",
-    price: 500,
+    price: 10,
     description: "ရေသန့်ဗူး",
     tags: ["Cold"],
   },
@@ -132,7 +132,7 @@ const menu = [
 const serviceFees = {
   "dine-in": 0,
   takeaway: 0,
-  delivery: 1500,
+  delivery: 30,
 };
 
 const modeLabels = {
@@ -157,6 +157,7 @@ const toast = document.querySelector("#toast");
 const ticketDialog = document.querySelector("#ticketDialog");
 const ticketTitle = document.querySelector("#ticketTitle");
 const ticketText = document.querySelector("#ticketText");
+const STORAGE_KEY = "malartang-menu-tickets-thb-v2";
 
 let selectedCategory = "All";
 let orderMode = "dine-in";
@@ -168,19 +169,19 @@ const money = new Intl.NumberFormat("en-US", {
 });
 
 function formatMoney(value) {
-  return `${money.format(value)} MMK`;
+  return `฿${money.format(value)}`;
 }
 
 function getOrders() {
   try {
-    return JSON.parse(localStorage.getItem("malartang-orders") || "[]");
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch {
     return [];
   }
 }
 
 function saveOrders(orders) {
-  localStorage.setItem("malartang-orders", JSON.stringify(orders.slice(0, 40)));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders.slice(0, 40)));
 }
 
 function showToast(message) {
@@ -254,7 +255,7 @@ function calculateTotals() {
 function renderCart() {
   if (!cart.size) {
     cartItems.className = "cart-items empty-cart";
-    cartItems.innerHTML = "<p>Menu ထဲက item တွေကိုရွေးပြီး order စတင်ပါ။</p>";
+    cartItems.innerHTML = "<p>Menu ထဲက item တွေကိုရွေးထားနိုင်ပါတယ်။</p>";
   } else {
     cartItems.className = "cart-items";
     cartItems.innerHTML = [...cart.values()]
@@ -288,7 +289,7 @@ function addItem(itemId) {
   const current = cart.get(itemId);
   cart.set(itemId, { item, quantity: current ? current.quantity + 1 : 1 });
   renderCart();
-  showToast(`${item.name} ထည့်ပြီးပါပြီ`);
+  showToast(`${item.name} ကိုရွေးထားပြီးပါပြီ`);
 }
 
 function changeQuantity(itemId, amount) {
@@ -367,8 +368,8 @@ function buildTicket(order) {
   }).format(new Date(order.createdAt));
 
   const lines = [
-    "MALARTANG ORDER",
-    `Order: ${order.id}`,
+    "MALARTANG MENU TICKET",
+    `Ticket: ${order.id}`,
     `Time: ${date}`,
     `Type: ${modeLabels[order.mode]}`,
     `Broth: ${order.broth}`,
@@ -406,7 +407,7 @@ function openTicket(order) {
 function renderOrders() {
   const orders = getOrders();
   if (!orders.length) {
-    orderBoard.innerHTML = `<p class="empty-cart">ဒီ browser ထဲမှာ order မရှိသေးပါ။</p>`;
+    orderBoard.innerHTML = `<p class="empty-cart">ဒီ browser ထဲမှာ ticket မရှိသေးပါ။</p>`;
     return;
   }
 
@@ -453,14 +454,14 @@ function submitOrder(event) {
 async function copyTicket() {
   if (!lastTicket) return;
   await navigator.clipboard.writeText(lastTicket);
-  showToast("Order ticket ကို copy လုပ်ပြီးပါပြီ");
+  showToast("Ticket ကို copy လုပ်ပြီးပါပြီ");
 }
 
 async function shareTicket() {
   if (!lastTicket) return;
   if (navigator.share) {
     await navigator.share({
-      title: "Malartang order",
+      title: "Malartang menu ticket",
       text: lastTicket,
     });
   } else {
@@ -471,7 +472,7 @@ async function shareTicket() {
 function exportOrders() {
   const orders = getOrders();
   if (!orders.length) {
-    showToast("Export လုပ်ရန် order မရှိသေးပါ");
+    showToast("Export လုပ်ရန် ticket မရှိသေးပါ");
     return;
   }
 
@@ -492,7 +493,7 @@ function exportOrders() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `malartang-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `malartang-menu-tickets-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }

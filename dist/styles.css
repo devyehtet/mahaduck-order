@@ -200,6 +200,18 @@ h3 {
   font-size: 1.05rem;
 }
 
+.currency-badge {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  margin-top: 0.3rem;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  background: var(--pepper);
+  color: white;
+  font-weight: 900;
+}
+
 .quick-stats {
   display: flex;
   flex-wrap: wrap;

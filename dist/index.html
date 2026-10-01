@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Malartang Order</title>
+    <title>Malartang Menu</title>
     <meta
       name="description"
-      content="Malartang ဆိုင်အတွက် menu ကြည့်ပြီး dine-in, takeaway, delivery order တင်နိုင်တဲ့ website"
+      content="Malartang ဆိုင်အတွက် Thai Baht ဈေးနှုန်းနဲ့ menu ကြည့်နိုင်ပြီး လိုအပ်ရင် order ticket ထုတ်နိုင်တဲ့ website"
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
@@ -17,13 +17,13 @@
         <span class="brand-mark" aria-hidden="true">M</span>
         <span>
           <strong>Malartang</strong>
-          <small>မားလာတန် အော်ဒါ</small>
+          <small>Menu & price list</small>
         </span>
       </a>
       <nav aria-label="Primary navigation">
         <a href="#menu">Menu</a>
-        <a href="#cart">Order</a>
-        <a href="#orders">Orders</a>
+        <a href="#cart">Ticket</a>
+        <a href="#orders">Saved</a>
       </nav>
     </header>
 
@@ -31,14 +31,15 @@
       <section class="intro">
         <div class="intro-copy">
           <p class="eyebrow">Hot pot • Dry mala • Skewers</p>
-          <h1>ဆိုင်မှာစားမလား၊ အွန်လိုင်းကနေမှာမလား။</h1>
+          <h1>Malartang Menu</h1>
           <p class="intro-text">
-            ကြိုက်တဲ့ဟင်းပွဲနဲ့ topping တွေကိုရွေး၊ quantity ထည့်ပြီး order ticket ကိုချက်ချင်းထုတ်နိုင်ပါတယ်။
+            ဆိုင်မှာလာစားသူတွေရော အွန်လိုင်းကနေကြည့်မယ့်သူတွေရော Thai Baht ဈေးနှုန်းနဲ့ menu ကိုရှင်းရှင်းလင်းလင်းကြည့်နိုင်ပါတယ်။
           </p>
+          <div class="currency-badge">ဈေးနှုန်းအားလုံး Thai Baht (฿)</div>
           <div class="quick-stats" aria-label="Shop highlights">
+            <span>Menu browse</span>
             <span>Spice level ရွေးနိုင်</span>
-            <span>Delivery / Pickup</span>
-            <span>Ticket copy & print</span>
+            <span>Order ticket ထုတ်နိုင်</span>
           </div>
         </div>
         <figure class="hero-media">
@@ -51,8 +52,8 @@
 
       <section class="order-mode-band" aria-label="Order type">
         <div>
-          <p class="section-kicker">Order type</p>
-          <h2>ဘယ်လိုမှာမလဲ</h2>
+          <p class="section-kicker">Ticket option</p>
+          <h2>မှာယူချင်ရင်</h2>
         </div>
         <div class="mode-control" role="group" aria-label="Choose order type">
           <button class="mode-button is-active" type="button" data-mode="dine-in">ဆိုင်မှာစားမယ်</button>
@@ -66,7 +67,7 @@
           <div class="section-heading">
             <div>
               <p class="section-kicker">Menu</p>
-              <h2>မားလာ menu</h2>
+              <h2>Menu & prices</h2>
             </div>
             <label class="search-box">
               <span class="sr-only">Search menu</span>
@@ -82,14 +83,14 @@
           <div class="cart-sticky">
             <div class="section-heading compact">
               <div>
-                <p class="section-kicker">Your order</p>
-                <h2>အော်ဒါ</h2>
+                <p class="section-kicker">Selected menu</p>
+                <h2>ရွေးထားတာ</h2>
               </div>
               <button class="ghost-button" id="clearCartButton" type="button">ရှင်းမယ်</button>
             </div>
 
             <div id="cartItems" class="cart-items empty-cart">
-              <p>Menu ထဲက item တွေကိုရွေးပြီး order စတင်ပါ။</p>
+              <p>Menu ထဲက item တွေကိုရွေးထားနိုင်ပါတယ်။</p>
             </div>
 
             <form id="orderForm" class="order-form">
@@ -123,9 +124,9 @@
                   <span>ငွေပေးချေမှု</span>
                   <select name="payment">
                     <option value="Cash">Cash</option>
-                    <option value="KPay">KPay</option>
-                    <option value="KBZPay">KBZPay</option>
-                    <option value="WavePay">WavePay</option>
+                    <option value="PromptPay">PromptPay</option>
+                    <option value="Bank transfer">Bank transfer</option>
+                    <option value="TrueMoney Wallet">TrueMoney Wallet</option>
                   </select>
                 </label>
               </div>
@@ -137,7 +138,7 @@
 
               <label>
                 <span>ဖုန်းနံပါတ်</span>
-                <input name="phone" type="tel" placeholder="09..." autocomplete="tel" />
+                <input name="phone" type="tel" placeholder="08..." autocomplete="tel" />
               </label>
 
               <label class="address-field" hidden>
@@ -153,20 +154,20 @@
               <div class="summary" aria-live="polite">
                 <div>
                   <span>Subtotal</span>
-                  <strong id="subtotalText">0 MMK</strong>
+                  <strong id="subtotalText">฿0</strong>
                 </div>
                 <div>
                   <span>Service</span>
-                  <strong id="serviceText">0 MMK</strong>
+                  <strong id="serviceText">฿0</strong>
                 </div>
                 <div class="total-row">
                   <span>Total</span>
-                  <strong id="totalText">0 MMK</strong>
+                  <strong id="totalText">฿0</strong>
                 </div>
               </div>
 
               <p class="form-error" id="formError" role="alert"></p>
-              <button class="primary-button" type="submit">Order တင်မယ်</button>
+              <button class="primary-button" type="submit">Ticket ထုတ်မယ်</button>
             </form>
           </div>
         </aside>
@@ -175,8 +176,8 @@
       <section class="orders-section" id="orders">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">Order board</p>
-            <h2>ဒီ browser ထဲက orders</h2>
+            <p class="section-kicker">Saved tickets</p>
+            <h2>ဒီ browser ထဲက tickets</h2>
           </div>
           <button class="ghost-button" id="exportOrdersButton" type="button">CSV ထုတ်မယ်</button>
         </div>
@@ -187,8 +188,8 @@
     <dialog class="ticket-dialog" id="ticketDialog">
       <div class="dialog-header">
         <div>
-          <p class="section-kicker">Order ticket</p>
-          <h2 id="ticketTitle">Order ready</h2>
+          <p class="section-kicker">Menu ticket</p>
+          <h2 id="ticketTitle">Ticket ready</h2>
         </div>
         <button class="icon-button" id="closeDialogButton" type="button" aria-label="Close ticket">×</button>
       </div>
