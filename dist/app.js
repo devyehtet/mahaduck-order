@@ -137,8 +137,8 @@ const serviceFees = {
 
 const modeLabels = {
   "dine-in": "ဆိုင်မှာစားမယ်",
-  takeaway: "Pickup",
-  delivery: "Delivery",
+  takeaway: "Phloen Chit Pickup",
+  delivery: "Area Delivery",
 };
 
 const categoryTabs = document.querySelector("#categoryTabs");
@@ -157,6 +157,7 @@ const toast = document.querySelector("#toast");
 const ticketDialog = document.querySelector("#ticketDialog");
 const ticketTitle = document.querySelector("#ticketTitle");
 const ticketText = document.querySelector("#ticketText");
+const SHOP_LOCATION = "Phloen Chit, Bangkok";
 const STORAGE_KEY = "malartang-menu-tickets-thb-v2";
 
 let selectedCategory = "All";
@@ -316,11 +317,11 @@ function setMode(mode) {
     addressField.hidden = true;
   } else if (mode === "takeaway") {
     locationLabel.textContent = "လာယူမည့်အချိန်";
-    orderForm.elements.location.placeholder = "ဥပမာ 6:30 PM";
+    orderForm.elements.location.placeholder = "ဥပမာ Phloen Chit ဆိုင်မှာ 6:30 PM";
     addressField.hidden = true;
   } else {
     locationLabel.textContent = "Delivery အချိန်";
-    orderForm.elements.location.placeholder = "ဥပမာ 7:00 PM";
+    orderForm.elements.location.placeholder = "ဥပမာ Phloen Chit area 7:00 PM";
     addressField.hidden = false;
   }
 
@@ -332,7 +333,7 @@ function validateOrder(formData) {
   if (orderMode === "dine-in" && !formData.get("location").trim()) return "စားပွဲနံပါတ်ထည့်ပါ။";
   if (orderMode !== "dine-in" && !formData.get("customerName").trim()) return "နာမည်ထည့်ပါ။";
   if (orderMode !== "dine-in" && !formData.get("phone").trim()) return "ဖုန်းနံပါတ်ထည့်ပါ။";
-  if (orderMode === "delivery" && !formData.get("address").trim()) return "Delivery လိပ်စာထည့်ပါ။";
+  if (orderMode === "delivery" && !formData.get("address").trim()) return "Phloen Chit အနီး delivery လိပ်စာထည့်ပါ။";
   return "";
 }
 
@@ -369,6 +370,7 @@ function buildTicket(order) {
 
   const lines = [
     "MALARTANG MENU TICKET",
+    `Shop: ${SHOP_LOCATION}`,
     `Ticket: ${order.id}`,
     `Time: ${date}`,
     `Type: ${modeLabels[order.mode]}`,
