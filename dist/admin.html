@@ -21,10 +21,24 @@
         <img src="images/mascot/duck-welcome.webp" alt="" class="login-duck" />
         <div class="login-brand"><img src="images/brand/logo-mark.png" alt="" width="36" /><div><strong>MAHA DUCK</strong><small data-i18n="dash">Order Dashboard</small></div></div>
         <h1 data-i18n="login">Staff login</h1>
+        <p class="login-note" id="defaultLoginNote"></p>
         <label class="field"><span data-i18n="email">Email</span><input name="email" type="email" autocomplete="username" required /></label>
         <label class="field"><span data-i18n="password">Password</span><input name="password" type="password" autocomplete="current-password" required /></label>
         <p class="form-error" id="loginError" role="alert"></p>
         <button class="btn btn-red btn-lg" type="submit" data-i18n="signIn" style="width:100%">Sign in</button>
+        <div class="lang lang-dark" role="group" aria-label="Language">
+          <button type="button" data-lang="my">မြန်မာ</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="th">ไทย</button>
+        </div>
+      </form>
+      <form class="login-card" id="passwordSetupForm" hidden>
+        <img src="images/mascot/duck-welcome.webp" alt="" class="login-duck" />
+        <div class="login-brand"><img src="images/brand/logo-mark.png" alt="" width="36" /><div><strong>MAHA DUCK</strong><small data-i18n="dash">Order Dashboard</small></div></div>
+        <h1 data-i18n="setPasswordTitle">Set password</h1>
+        <p class="login-note" data-i18n="setPasswordSub">Create a password for this staff account.</p>
+        <label class="field"><span data-i18n="newPassword">New password</span><input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <label class="field"><span data-i18n="confirmPassword">Confirm password</span><input name="confirm" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <p class="form-error" id="passwordSetupError" role="alert"></p>
+        <button class="btn btn-red btn-lg" type="submit" data-i18n="setPassword" style="width:100%">Set password</button>
         <div class="lang lang-dark" role="group" aria-label="Language">
           <button type="button" data-lang="my">မြန်မာ</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="th">ไทย</button>
         </div>
@@ -58,7 +72,6 @@
         <button type="button" role="tab" data-view="customer" aria-selected="false">Customer</button>
         <button type="button" role="tab" data-view="counter" aria-selected="true">Counter</button>
         <button type="button" role="tab" data-view="kitchen" aria-selected="false">Kitchen</button>
-        <button type="button" role="tab" data-view="pos" aria-selected="false" data-i18n="pos">POS</button>
         <button type="button" role="tab" data-view="tables" aria-selected="false" data-i18n="tables">Table QR</button>
       </nav>
 
@@ -93,31 +106,6 @@
         <div class="board kitchen-board" id="kitchenBoard"></div>
       </main>
 
-      <main class="pos" id="posView" hidden>
-        <section class="pos-menu">
-          <div class="pos-cats" id="posCats" role="tablist"></div>
-          <div class="pos-grid" id="posGrid"></div>
-        </section>
-        <aside class="pos-ticket" aria-label="Current sale">
-          <div class="pos-ticket-head">
-            <h2 data-i18n="posNew">New sale</h2>
-            <button class="btn btn-sm btn-line" type="button" id="posClear" data-i18n="clearSale">Clear</button>
-          </div>
-          <div class="pos-type" id="posType" role="radiogroup"></div>
-          <div class="pos-fields">
-            <input id="posTable" inputmode="numeric" maxlength="8" placeholder="Table" aria-label="Table" />
-            <input id="posName" maxlength="60" placeholder="Customer name (optional)" aria-label="Customer name" />
-          </div>
-          <div class="pos-lines" id="posLines"></div>
-          <div class="pos-sum"><span data-i18n="total">Total</span><strong id="posTotal">฿0</strong></div>
-          <div class="pos-pay">
-            <button class="btn btn-green btn-lg" type="button" id="posCash" data-pay="cash">฿ Cash</button>
-            <button class="btn btn-lg pp-btn" type="button" id="posPP" data-pay="promptpay">PromptPay QR</button>
-          </div>
-          <button class="btn btn-line" type="button" id="posLater" data-i18n="sendKitchen">Send to kitchen · pay later</button>
-        </aside>
-      </main>
-
       <main class="admin-main" id="tablesView" hidden>
         <div class="section-head"><h2 data-i18n="tablesTitle">QR codes for tables</h2><p data-i18n="tablesSub"></p></div>
         <div class="qr-controls">
@@ -142,19 +130,6 @@
       </div>
     </dialog>
 
-    <dialog class="sheet" id="posDialog">
-      <div class="sheet-inner">
-        <header class="sheet-head">
-          <button class="icon-btn" type="button" data-close aria-label="Close">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
-          </button>
-          <h2 id="posDlgTitle"></h2>
-        </header>
-        <div class="sheet-body" id="posDlgBody"></div>
-        <footer class="sheet-foot" id="posDlgFoot"></footer>
-      </div>
-    </dialog>
-
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div id="printArea" hidden></div>
 
@@ -163,8 +138,6 @@
     <script src="js/api.js"></script>
     <script src="js/i18n.js"></script>
     <script src="vendor/qrcode.js"></script>
-    <script src="js/promptpay.js"></script>
     <script src="js/admin.js"></script>
-    <script src="js/pos.js"></script>
   </body>
 </html>

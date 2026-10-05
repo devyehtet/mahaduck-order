@@ -17,6 +17,7 @@ body.admin { background: #f3ede1; }
 .login-brand strong { font-family: var(--display); font-size: 20px; display: block; color: var(--green); line-height: 1; }
 .login-brand small { color: var(--muted); font-size: 12px; }
 .login h1 { font-family: var(--display); font-size: 26px; margin-bottom: 16px; }
+.login-note { margin: -6px 0 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .lang-dark { margin: 16px auto 0; width: max-content; background: var(--sand); }
 .lang-dark button { color: var(--muted); }
 

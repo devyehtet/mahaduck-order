@@ -9,6 +9,7 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const money = (n) => CFG.currency + Number(n || 0).toLocaleString("en-US");
+  const defaultStaffEmail = String((CFG.staffLogin && CFG.staffLogin.email) || "info@yehtet.com").trim();
   function safeMapLink(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -43,11 +44,20 @@
     settings: { accepting_orders: true, notice: "" },
     timer: null,
     busy: new Set(),
-    view: ["customer", "counter", "kitchen", "pos", "tables"].includes(initialView) ? initialView : "counter",
+    view: ["customer", "counter", "kitchen", "tables"].includes(initialView) ? initialView : "counter",
   };
   const t = window.makeT(() => state.lang);
   const ACTIVE = ["new", "preparing", "ready", "out_for_delivery"];
   const NEXT = { new: ["preparing", "a_accept"], preparing: ["ready", "a_ready"], ready: ["completed", "a_complete"], out_for_delivery: ["completed", "a_complete"] };
+
+  function updateDefaultLoginNote() {
+    const emailInput = $("#loginForm input[name=email]");
+    if (emailInput && defaultStaffEmail && !emailInput.value) emailInput.value = defaultStaffEmail;
+    const note = $("#defaultLoginNote");
+    if (!note) return;
+    note.hidden = !defaultStaffEmail;
+    note.textContent = defaultStaffEmail ? t("defaultLoginNote").replace("{email}", defaultStaffEmail) : "";
+  }
 
   function toast(msg) {
     const el = $("#toast");
@@ -99,21 +109,19 @@
     document.documentElement.lang = state.lang;
     $$("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
     $$("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
+    updateDefaultLoginNote();
     if (!api.live) { const b = $("#demoBanner"); b.hidden = false; b.textContent = t("demoNote"); }
     renderTop();
     render();
-    if (window.MahaPOS && !$("#posView").hidden) window.MahaPOS.open();
   }
 
   // ---------- data ----------
   async function load() {
     try {
-      const rows = await api.listOrders(rangeStart());
+      const rows = (await api.listOrders(rangeStart())).filter((o) => (o.source || "online") === "online");
       const fresh = rows.filter((o) => o.status === "new" && state.known && !state.known.has(o.id));
-      const claimed = rows.filter((o) => o.payment_status === "claimed" && state.payState.size && state.payState.get(o.id) !== "claimed");
       state.known = new Set(rows.map((o) => o.id));
       state.payState = new Map(rows.map((o) => [o.id, o.payment_status || "unpaid"]));
-      if (claimed.length) { chime(); toast(`${claimed.map((o) => o.code).join(", ")} · ${t("pay_claimed")}`); }
       state.orders = rows;
       if (fresh.length) {
         chime();
@@ -157,7 +165,6 @@
     const revenue = valid.reduce((n, o) => n + (o.total || 0), 0);
     const active = list.filter((o) => ACTIVE.includes(o.status)).length;
     const newCount = list.filter((o) => o.status === "new").length;
-    const unpaid = valid.filter((o) => (o.payment_status || "unpaid") !== "paid").length;
     const label = state.range === "today" ? t("ordersToday") : t("orders");
     const el = document.getElementById(targetId);
     if (!el) return;
@@ -165,13 +172,13 @@
       [label, valid.length, ""],
       [t("revenue"), money(revenue), "gold"],
       [t("active"), active, active ? "red" : ""],
-      [t("unpaidCount"), unpaid, unpaid ? "warn" : ""],
+      [t("f_new"), newCount, newCount ? "warn" : ""],
     ].map(([l, v, c]) => `<div class="stat ${c}"><span>${esc(l)}</span><strong>${esc(v)}</strong></div>`).join("");
     if (titleKey) document.title = (newCount ? `(${newCount}) ` : "") + `Maha Duck — ${titleKey}`;
   }
 
   function syncViewUI() {
-    const valid = ["customer", "counter", "kitchen", "pos", "tables"];
+    const valid = ["customer", "counter", "kitchen", "tables"];
     if (!valid.includes(state.view)) state.view = "counter";
     const tabBar = document.querySelector(".admin-tabs");
     if (tabBar) tabBar.hidden = state.view === "kitchen";
@@ -183,8 +190,9 @@
     const legacyOrders = $("#ordersView");
     if (legacyOrders) legacyOrders.hidden = true;
     $("#tablesView").hidden = state.view !== "tables";
-    $("#posView").hidden = state.view !== "pos";
-    document.body.classList.toggle("pos-mode", state.view === "pos");
+    const posView = $("#posView");
+    if (posView) posView.hidden = true;
+    document.body.classList.remove("pos-mode");
     document.body.classList.toggle("kitchen-mode", state.view === "kitchen");
   }
 
@@ -308,25 +316,7 @@
     }
   }
   function renderSlipFoot(o) {
-    const paid = (o.payment_status || "unpaid") === "paid";
-    $("#slipFoot").innerHTML = `<button class="btn btn-line" type="button" data-close>${t("back")}</button>
-      ${paid ? `<span class="pay-claimed" style="flex:1;text-align:center">✓ ${t("pay_paid")}</span>` : `<button class="btn btn-green btn-grow" type="button" id="slipPaid">✓ ${t("markPaid")}</button>`}`;
-  }
-
-  function payChip(o) {
-    const ps = o.payment_status || "unpaid";
-    return `<span class="chip pay ps-${ps}">${esc(t(o.payment) || o.payment)} · ${ps === "paid" ? "✓ " : ""}${t("pay_" + ps)}</span>`;
-  }
-
-  async function markPaid(id) {
-    const o = state.orders.find((x) => x.id === id);
-    if (!o) return;
-    const prev = o.payment_status;
-    o.payment_status = "paid"; state.payState.set(id, "paid");
-    state.busy.add(id); render();
-    try { await api.updateOrder(id, { payment_status: "paid" }); }
-    catch (e) { o.payment_status = prev; toast(e.message); }
-    state.busy.delete(id); render();
+    $("#slipFoot").innerHTML = `<button class="btn btn-line btn-grow" type="button" data-close>${t("back")}</button>`;
   }
 
   function card(o) {
@@ -341,7 +331,7 @@
         <div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div>
         <time title="${new Date(o.created_at).toLocaleString()}">${clock(o.created_at)} · ${since(o.created_at)}</time>
       </header>
-      <div class="meta">${o.source === "pos" ? `<span class="chip src-pos">${t("sourcePos")}</span>` : ""}${typeChip(o)}${payChip(o)}</div>
+      <div class="meta">${typeChip(o)}</div>
       <div class="who">
         <strong>${esc(o.customer_name)}</strong>
         ${o.phone ? `<a href="tel:${esc(o.phone.replace(/[^\d+]/g, ""))}" class="tel">${esc(o.phone)}</a>` : ""}
@@ -356,8 +346,6 @@
         ${dispatchReady ? `<label class="delivery-start"><span>${t("deliveryProvider")}</span><input type="text" maxlength="80" value="${esc(o.delivery_provider || "")}" placeholder="${esc(t("deliveryProviderPh"))}" data-delivery-provider /></label><button class="btn btn-sm btn-green grow" type="button" data-set="out_for_delivery" data-dispatch ${busy}>${t("a_startDelivery")}</button>` : ""}
         ${next ? `<button class="btn btn-sm ${o.status === "new" ? "btn-red" : "btn-green"} grow" type="button" data-set="${next[0]}" ${busy}>${t(next[1])}</button>` : ""}
         ${["completed", "cancelled"].includes(o.status) ? `<button class="btn btn-sm btn-line" type="button" data-set="preparing" ${busy}>${t("a_undo")}</button>` : ""}
-        ${(o.payment_status || "unpaid") !== "paid" && o.status !== "cancelled" ? `<button class="btn btn-sm ${o.payment_status === "claimed" ? "btn-gold" : "btn-line"}" type="button" data-paid="${o.id}" ${busy}>${t("markPaid")}</button>` : ""}
-        ${o.has_slip ? `<button class="btn btn-sm btn-slip" type="button" data-slip="${o.id}">${CLIP} ${t("viewSlip")}</button>` : ""}
         <button class="btn btn-sm btn-line" type="button" data-print="${o.id}">${t("a_print")}</button>
         ${["new", "preparing", "ready"].includes(o.status) ? `<button class="btn btn-sm btn-line danger" type="button" data-set="cancelled" ${busy}>${t("a_cancel")}</button>` : ""}
       </footer>
@@ -392,8 +380,6 @@
   function ticketHtml(o) {
     const typeLine = o.order_type === "dinein" ? "DINE-IN · TABLE " + esc(o.table_no || "-")
       : o.order_type === "pickup" ? (o.source === "pos" ? "TAKEAWAY" : "PICKUP · " + esc(o.pickup_time || "ASAP")) : "DELIVERY";
-    const ps = o.payment_status || "unpaid";
-    const change = o.cash_received != null ? o.cash_received - o.total : null;
     return `<div class="ticket">
       <h2>MAHA DUCK</h2><p class="c">THE MASTER OF MALA<br/>${esc(CFG.location)}${CFG.phone ? "<br/>" + esc(CFG.phone) : ""}</p>
       <hr/>
@@ -409,8 +395,6 @@
       <div class="row"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
       ${o.order_type === "delivery" ? `<div class="row"><span>Delivery</span><span>${o.delivery_fee == null ? "-" : money(o.delivery_fee)}</span></div>` : ""}
       <div class="row big"><span>TOTAL</span><span>${money(o.total)}</span></div>
-      <div class="row"><span>${o.payment === "promptpay" ? "PromptPay" : "Cash"}</span><span>${ps === "paid" ? "PAID" : "UNPAID"}</span></div>
-      ${o.cash_received != null ? `<div class="row"><span>Cash received</span><span>${money(o.cash_received)}</span></div><div class="row"><span>Change</span><span>${money(change)}</span></div>` : ""}
       <hr/><p class="c">${esc(CFG.receiptFooter || "Thank you!")}</p>
     </div>`;
   }
@@ -461,10 +445,22 @@
   }
 
   // ---------- views ----------
-  function showLogin() {
+  function showLogin(message) {
     clearInterval(state.timer);
     $("#dashView").hidden = true;
     $("#loginView").hidden = false;
+    $("#loginForm").hidden = false;
+    $("#passwordSetupForm").hidden = true;
+    $("#loginError").textContent = message || "";
+    applyLang();
+  }
+  function showPasswordSetup(message) {
+    clearInterval(state.timer);
+    $("#dashView").hidden = true;
+    $("#loginView").hidden = false;
+    $("#loginForm").hidden = true;
+    $("#passwordSetupForm").hidden = false;
+    $("#passwordSetupError").textContent = message || "";
     applyLang();
   }
   async function showDash() {
@@ -492,6 +488,31 @@
     }
     btn.disabled = false;
   });
+  $("#passwordSetupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const password = String(f.get("password"));
+    const confirm = String(f.get("confirm"));
+    const btn = $("button[type=submit]", e.target);
+    $("#passwordSetupError").textContent = "";
+    if (password.length < 8) {
+      $("#passwordSetupError").textContent = t("passwordTooShort");
+      return;
+    }
+    if (password !== confirm) {
+      $("#passwordSetupError").textContent = t("passwordMismatch");
+      return;
+    }
+    btn.disabled = true;
+    try {
+      await api.updatePassword(password);
+      toast(t("passwordSaved"));
+      showDash();
+    } catch (err) {
+      $("#passwordSetupError").textContent = err.message || "Could not set password";
+    }
+    btn.disabled = false;
+  });
 
   document.addEventListener("click", (e) => {
     const el = e.target.closest("button");
@@ -512,11 +533,8 @@
       return;
     }
     if (d.print) return printTicket(d.print);
-    if (d.paid) return markPaid(d.paid);
-    if (d.slip) return openSlip(d.slip);
     if (el.closest("#slipDialog")) {
       if ("close" in d) { slipOrderId = null; return $("#slipDialog").close(); }
-      if (el.id === "slipPaid") { const id = slipOrderId; slipOrderId = null; $("#slipDialog").close(); return markPaid(id); }
     }
     if (d.view) {
       state.view = d.view;
@@ -524,7 +542,6 @@
       url.searchParams.set("view", d.view);
       history.replaceState({}, "", url);
       syncViewUI();
-      if (d.view === "pos" && window.MahaPOS) window.MahaPOS.open();
       if (d.view === "tables" && !$("#qrGrid").children.length) genQR();
       return render();
     }
@@ -558,7 +575,10 @@
   // ---------- boot ----------
   (async () => {
     syncViewUI();
-    if (await api.isSignedIn()) showDash();
+    const authRedirect = api.consumeAuthRedirect && api.consumeAuthRedirect();
+    if (authRedirect && authRedirect.error) showLogin(authRedirect.error);
+    else if (authRedirect && authRedirect.session) showPasswordSetup();
+    else if (await api.isSignedIn()) showDash();
     else showLogin();
   })();
 })();

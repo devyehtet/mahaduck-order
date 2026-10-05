@@ -12,8 +12,8 @@ Use `npm run build` to create a production build and `npm run start` to serve it
 
 ## Features
 
-- Customer ordering for delivery, pickup, and dine-in, with menu customization, PromptPay, and order tracking.
-- Staff dashboard with cashier and kitchen views, delivery handoff, POS, receipts, and table QR codes.
+- Customer ordering for delivery, pickup, and dine-in, with menu customization and order tracking.
+- Staff dashboard for online customer orders, kitchen handoff, receipts, and table QR codes.
 - Burmese, Thai, and English interfaces.
 
 ## Project layout
@@ -46,6 +46,7 @@ For real customer ordering:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+NEXT_PUBLIC_STAFF_EMAIL=info@yehtet.com
 ```
 
 The Next.js app loads those values through `/api/runtime-config`, so orders from any device/network go to the same Supabase database and appear in `/admin`.

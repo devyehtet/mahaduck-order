@@ -22,7 +22,7 @@
     customer: S.get("mahaduck-customer", { name: "", phone: "", address: "", map: "" }),
     dest: S.get("mahaduck-dest", null), // { lat, lng, label, src: "gps" | "area" }
     destOther: false,
-    payment: CFG.paymentMethods[0],
+    payment: (CFG.paymentMethods && CFG.paymentMethods[0]) || "cash",
     pickup: "asap",
     settings: { accepting_orders: true, notice: "" },
     cartView: "cart", // cart | checkout | success | orders
@@ -746,9 +746,13 @@
         .map((x) => `<button type="button" role="radio" aria-checked="${state.pickup === x.v}" data-pick="${x.v}">${esc(x.l)}</button>`)
         .join("")}</div></div>`;
     }
-    fields += `<div class="field"><span>${t("payment")}</span><div class="pay-opts" role="radiogroup">${CFG.paymentMethods
-      .map((p) => `<button type="button" class="pay-opt" role="radio" aria-checked="${state.payment === p}" data-pay="${p}"><strong>${t(p)}</strong><small>${t(p + "Sub")}</small></button>`)
-      .join("")}</div></div>`;
+    const paymentMethods = CFG.paymentMethods && CFG.paymentMethods.length ? CFG.paymentMethods : ["cash"];
+    if (!paymentMethods.includes(state.payment)) state.payment = paymentMethods[0];
+    if (paymentMethods.length > 1) {
+      fields += `<div class="field"><span>${t("payment")}</span><div class="pay-opts" role="radiogroup">${paymentMethods
+        .map((p) => `<button type="button" class="pay-opt" role="radio" aria-checked="${state.payment === p}" data-pay="${p}"><strong>${t(p)}</strong><small>${t(p + "Sub")}</small></button>`)
+        .join("")}</div></div>`;
+    }
     fields += `<label class="field"><span>${t("noteLabel")}</span><textarea id="fNote" rows="2" maxlength="300" placeholder="${esc(t("notePh"))}"></textarea></label>`;
     fields += totalsHtml;
     if (!api.live) fields += `<p class="demo-chip">${t("demoNote")}</p>`;
@@ -945,7 +949,7 @@
     body.innerHTML = `<div class="success"><img src="images/mascot/duck-welcome.webp" alt="" />
       <h3>${t("thanks")}</h3><p style="color:var(--muted)">${t("thanksSub")}</p>
       <div class="code-box">${esc(o.code)}</div>
-      <p><strong>${money(o.total)}</strong> · ${t(o.type)}${o.payment ? " · " + t(o.payment) : ""}</p>
+      <p><strong>${money(o.total)}</strong> · ${t(o.type)}</p>
       <div id="payBox" style="width:100%">${payHtml(o)}</div>
       <div id="trackerBox" style="width:100%">${trackerHtml(o.status, o.order_type || o.type, o.delivery_provider, o.delivery_started_at)}</div>
       ${!api.live ? `<p class="demo-chip">${t("demoNote")}</p>` : ""}</div>`;

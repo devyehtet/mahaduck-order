@@ -17,6 +17,9 @@ window.MAHA_CONFIG = {
   // SETUP-GUIDE-MY.md ထဲက အဆင့်တွေအတိုင်း ဖြည့်ပါ။
   supabaseUrl: "",
   supabaseAnonKey: "",
+  staffLogin: {
+    email: "info@yehtet.com",
+  },
 
   // ---- Ordering ----
   orderTypes: ["delivery", "pickup", "dinein"],
@@ -74,7 +77,7 @@ window.MAHA_CONFIG = {
     ],
   },
   minOrder: 0,            // အနည်းဆုံး order ပမာဏ (฿)
-  paymentMethods: ["cash", "promptpay"],
+  paymentMethods: ["cash"],
 
   // ---- PromptPay QR ----
   // ဆိုင်ရဲ့ PromptPay နံပါတ် (ဖုန်း 08xxxxxxxx သို့ Tax ID 13 လုံး) ထည့်ရင်

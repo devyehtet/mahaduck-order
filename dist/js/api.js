@@ -4,6 +4,11 @@
   const base = (cfg.supabaseUrl || "").replace(/\/+$/, "");
   const key = cfg.supabaseAnonKey || "";
   const live = Boolean(base && key);
+  const authParams = location.hash && new URLSearchParams(location.hash.slice(1));
+  if (live && authParams && !location.pathname.startsWith("/admin") && (authParams.has("access_token") || authParams.has("error"))) {
+    location.replace("/admin" + location.search + location.hash);
+    return;
+  }
   const DEMO_ORDERS = "mahaduck-demo-orders";
   const DEMO_SETTINGS = "mahaduck-demo-settings";
   const DEMO_SLIPS = "mahaduck-demo-slips";
@@ -138,6 +143,23 @@
     if (!s) { const e = new Error("Not signed in"); e.status = 401; throw e; }
     return s.access_token;
   }
+  function decodeJwtPayload(jwt) {
+    try {
+      const part = String(jwt || "").split(".")[1];
+      if (!part) return {};
+      const text = atob(part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "="));
+      return JSON.parse(decodeURIComponent(escape(text)));
+    } catch {
+      return {};
+    }
+  }
+  function persistSession(s) {
+    const payload = decodeJwtPayload(s.access_token);
+    s.expires_at = s.expires_at || Math.floor(Date.now() / 1000) + Number(s.expires_in || 3600);
+    s.user = s.user || { email: payload.email || "" };
+    store.set(SESSION, s);
+    return s;
+  }
 
   const api = {
     live,
@@ -206,11 +228,34 @@
     },
 
     // ---------- staff ----------
+    consumeAuthRedirect() {
+      if (!live || !location.hash || location.hash.length < 2) return null;
+      const params = new URLSearchParams(location.hash.slice(1));
+      const cleanUrl = location.pathname + location.search;
+      if (params.has("error")) {
+        history.replaceState({}, "", cleanUrl);
+        return {
+          error: params.get("error_description") || params.get("error") || "Email link is invalid or has expired",
+        };
+      }
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (!access_token || !refresh_token) return null;
+      const s = persistSession({
+        access_token,
+        refresh_token,
+        expires_in: Number(params.get("expires_in") || 3600),
+        token_type: params.get("token_type") || "bearer",
+      });
+      history.replaceState({}, "", cleanUrl);
+      return { type: params.get("type") || "", session: s };
+    },
     async signIn(email, password) {
       const s = await rest("/auth/v1/token?grant_type=password", { method: "POST", body: { email, password } });
-      s.expires_at = Math.floor(Date.now() / 1000) + s.expires_in;
-      store.set(SESSION, s);
-      return s;
+      return persistSession(s);
+    },
+    async updatePassword(password) {
+      await rest("/auth/v1/user", { method: "PUT", token: await token(), body: { password } });
     },
     signOut() { store.del(SESSION); },
     async isSignedIn() { return !live || Boolean(await session()); },
