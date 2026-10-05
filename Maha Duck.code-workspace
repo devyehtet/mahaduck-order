@@ -1,0 +1,10 @@
+{
+  "folders": [{ "name": "Maha Duck", "path": "." }],
+  "settings": {
+    "editor.tabSize": 2,
+    "editor.wordWrap": "on",
+    "explorer.fileNesting.enabled": false,
+    "files.exclude": { "**/.DS_Store": true }
+  },
+  "extensions": { "recommendations": ["esbenp.prettier-vscode"] }
+}

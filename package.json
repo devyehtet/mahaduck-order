@@ -1,0 +1,22 @@
+{
+  "name": "maha-duck",
+  "version": "2.0.0",
+  "description": "Maha Duck — The Master of Mala · online ordering website + staff dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "dev:legacy": "node scripts/serve-static.mjs",
+    "check": "node --check dist/js/app.js && node --check dist/js/admin.js && node --check dist/js/api.js && node --check dist/js/pos.js && node --check dist/js/promptpay.js && node --check dist/js/i18n.js && node --check dist/settings/config.js && node --check dist/settings/menu.js && echo All files OK"
+  },
+  "dependencies": {
+    "html-react-parser": "^5.2.5",
+    "next": "^16.3.8",
+    "node-html-parser": "^7.0.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "engines": { "node": ">=20.9" }
+}

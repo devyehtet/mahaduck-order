@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Malartang">
-  <rect width="64" height="64" rx="12" fill="#211713"/>
-  <path d="M14 35c0 9 8 16 18 16s18-7 18-16H14Z" fill="#b9281d"/>
-  <path d="M18 35c1 6 7 10 14 10s13-4 14-10H18Z" fill="#d79922"/>
-  <path d="M21 22c4 2 7 2 11 0s7-2 11 0" fill="none" stroke="#fffaf3" stroke-width="4" stroke-linecap="round"/>
-  <path d="M23 28c3 2 6 2 9 0s6-2 9 0" fill="none" stroke="#fffaf3" stroke-width="4" stroke-linecap="round"/>
-</svg>

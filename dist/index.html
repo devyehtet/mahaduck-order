@@ -1,211 +1,201 @@
 <!doctype html>
-<html lang="my">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Malartang Phloen Chit Menu</title>
-    <meta
-      name="description"
-      content="Phloen Chit, Bangkok ရှိ Malartang ဆိုင်အတွက် Thai Baht ဈေးနှုန်းနဲ့ menu ကြည့်နိုင်ပြီး လိုအပ်ရင် order ticket ထုတ်နိုင်တဲ့ website"
-    />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Maha Duck — The Master of Mala | Order Online</title>
+    <meta name="description" content="Order Mala Xiang Guo, Malatang, Mala Duck and Sichuan dishes online from Maha Duck, Phloen Chit, Bangkok. Delivery, pickup or dine-in." />
+    <meta name="theme-color" content="#14532f" />
+    <meta property="og:title" content="Maha Duck — The Master of Mala" />
+    <meta property="og:description" content="Pick your mala duck set and order online — delivery, pickup or dine-in." />
+    <meta property="og:image" content="images/dishes/dish-duck.webp" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Poppins:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;600;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
+    <a class="skip" href="#menu" data-i18n="skip">Skip to menu</a>
+
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="Malartang home">
-        <span class="brand-mark" aria-hidden="true">M</span>
-        <span>
-          <strong>Malartang</strong>
-          <small>Phloen Chit menu</small>
+      <a class="brand" href="#top" aria-label="Maha Duck home">
+        <img class="brand-mark" src="images/brand/logo-mark.png" alt="" width="34" height="38" />
+        <span class="brand-text">
+          <strong>MAHA DUCK</strong>
+          <small>THE MASTER OF MALA</small>
         </span>
       </a>
-      <nav aria-label="Primary navigation">
-        <a href="#menu">Menu</a>
-        <a href="#cart">Ticket</a>
-        <a href="#orders">Saved</a>
-      </nav>
+      <div class="topbar-actions">
+        <div class="lang" role="group" aria-label="Language">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="th">ไทย</button>
+          <button type="button" data-lang="my">မြန်မာ</button>
+        </div>
+        <button class="cart-pill" type="button" id="cartOpen" aria-label="Open order">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6h16l-1.6 9.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8L4 6Zm3-3h10l1 2H6l1-2Zm2 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm9 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
     </header>
 
+    <div class="notice" id="shopNotice" hidden></div>
+    <div class="table-banner" id="tableBanner" hidden></div>
+
     <main id="top">
-      <section class="intro">
-        <div class="intro-copy">
-          <p class="eyebrow">Hot pot • Dry mala • Skewers</p>
-          <h1>Malartang Phloen Chit</h1>
-          <p class="intro-text">
-            Phloen Chit, Bangkok မှာလာစားမယ့်သူတွေရော အွန်လိုင်းကနေကြည့်မယ့်သူတွေရော Thai Baht ဈေးနှုန်းနဲ့ menu ကိုရှင်းရှင်းလင်းလင်းကြည့်နိုင်ပါတယ်။
-          </p>
-          <div class="detail-badges" aria-label="Location and currency">
-            <span class="currency-badge">Phloen Chit, Bangkok</span>
-            <span class="currency-badge">Thai Baht (฿)</span>
-          </div>
-          <div class="quick-stats" aria-label="Shop highlights">
-            <span>Menu browse</span>
-            <span>Phloen Chit pickup</span>
-            <span>Spice level ရွေးနိုင်</span>
-          </div>
-        </div>
-        <figure class="hero-media">
-          <img
-            src="./assets/malatang-hero.png"
-            alt="မားလာဟော့ပေါ့ပန်းကန်ထဲမှာ အသီးအရွက်၊ တိုဖူး၊ အသား၊ ခေါက်ဆွဲများပါဝင်သော ပူပူနွေးနွေးဟင်းပွဲ"
-          />
-        </figure>
-      </section>
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow" data-i18n="heroEyebrow">Phloen Chit · Bangkok</p>
+            <h1><span class="y" data-i18n="heroH1a">the master</span> <span class="y" data-i18n="heroH1b">of</span> <span data-i18n="heroH1c">mala</span></h1>
+            <p class="hero-sub" data-i18n="heroSub">Mala Xiang Guo, Malatang and Mala Duck — choose your set, your meat and how hot you want it.</p>
 
-      <section class="order-mode-band" aria-label="Order type">
-        <div>
-          <p class="section-kicker">Ticket option</p>
-          <h2>Phloen Chit ဆိုင်ကနေ</h2>
-        </div>
-        <div class="mode-control" role="group" aria-label="Choose order type">
-          <button class="mode-button is-active" type="button" data-mode="dine-in">ဆိုင်မှာစားမယ်</button>
-          <button class="mode-button" type="button" data-mode="takeaway">Phloen Chit Pickup</button>
-          <button class="mode-button" type="button" data-mode="delivery">Area Delivery</button>
-        </div>
-      </section>
+            <div class="type-switch" role="radiogroup" aria-label="Order type" id="typeSwitch"></div>
 
-      <section class="workspace" id="menu">
-        <div class="menu-pane">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Menu</p>
-              <h2>Menu & prices</h2>
-            </div>
-            <label class="search-box">
-              <span class="sr-only">Search menu</span>
-              <input id="searchInput" type="search" placeholder="ရှာရန်" autocomplete="off" />
-            </label>
-          </div>
-
-          <div class="category-tabs" id="categoryTabs" aria-label="Menu categories"></div>
-          <div class="menu-grid" id="menuList"></div>
-        </div>
-
-        <aside class="cart-pane" id="cart" aria-label="Current order">
-          <div class="cart-sticky">
-            <div class="section-heading compact">
-              <div>
-                <p class="section-kicker">Selected menu</p>
-                <h2>ရွေးထားတာ</h2>
-              </div>
-              <button class="ghost-button" id="clearCartButton" type="button">ရှင်းမယ်</button>
+            <div class="hero-cta">
+              <a class="btn btn-gold btn-lg" href="#sec-main" data-i18n="startSet">Choose your main dish</a>
+              <a class="btn btn-ghost-light btn-lg" href="#sec-dishes" data-i18n="seeMenu">Dishes &amp; appetizers</a>
             </div>
 
-            <div id="cartItems" class="cart-items empty-cart">
-              <p>Menu ထဲက item တွေကိုရွေးထားနိုင်ပါတယ်။</p>
-            </div>
-
-            <form id="orderForm" class="order-form">
-              <div class="form-row">
-                <label>
-                  <span>ဟင်းရည်</span>
-                  <select name="broth">
-                    <option value="Signature spicy broth">Signature spicy broth</option>
-                    <option value="Mild tomato broth">Mild tomato broth</option>
-                    <option value="Dry mala mix">Dry mala mix</option>
-                    <option value="Clear soup">Clear soup</option>
-                  </select>
-                </label>
-                <label>
-                  <span>အစပ်</span>
-                  <select name="spice">
-                    <option value="Mild">Mild</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="Hot">Hot</option>
-                    <option value="Extra hot">Extra hot</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  <span id="locationLabel">စားပွဲနံပါတ်</span>
-                  <input name="location" type="text" placeholder="ဥပမာ T-05" />
-                </label>
-                <label>
-                  <span>ငွေပေးချေမှု</span>
-                  <select name="payment">
-                    <option value="Cash">Cash</option>
-                    <option value="PromptPay">PromptPay</option>
-                    <option value="Bank transfer">Bank transfer</option>
-                    <option value="TrueMoney Wallet">TrueMoney Wallet</option>
-                  </select>
-                </label>
-              </div>
-
-              <label>
-                <span>နာမည်</span>
-                <input name="customerName" type="text" placeholder="နာမည်" autocomplete="name" />
-              </label>
-
-              <label>
-                <span>ဖုန်းနံပါတ်</span>
-                <input name="phone" type="tel" placeholder="08..." autocomplete="tel" />
-              </label>
-
-              <label class="address-field" hidden>
-                <span>လိပ်စာ</span>
-                <textarea name="address" rows="3" placeholder="Phloen Chit အနီး delivery လိပ်စာ"></textarea>
-              </label>
-
-              <label>
-                <span>မှတ်ချက်</span>
-                <textarea name="note" rows="3" placeholder="ဥပမာ ကြက်သွန်နည်းနည်း၊ sauce သီးသန့်"></textarea>
-              </label>
-
-              <div class="summary" aria-live="polite">
-                <div>
-                  <span>Subtotal</span>
-                  <strong id="subtotalText">฿0</strong>
-                </div>
-                <div>
-                  <span>Service</span>
-                  <strong id="serviceText">฿0</strong>
-                </div>
-                <div class="total-row">
-                  <span>Total</span>
-                  <strong id="totalText">฿0</strong>
-                </div>
-              </div>
-
-              <p class="form-error" id="formError" role="alert"></p>
-              <button class="primary-button" type="submit">Ticket ထုတ်မယ်</button>
-            </form>
+            <ol class="steps" aria-label="How it works">
+              <li><b>1</b><span data-i18n="step1">Choose your set</span><small data-i18n="step1s">Xiang Guo · Malatang · Duck</small></li>
+              <li><b>2</b><span data-i18n="step2">Pick your options</span><small data-i18n="step2s">Meat, soup or size</small></li>
+              <li><b>3</b><span data-i18n="step3">Spicy level</span><small data-i18n="step3s">Level 0–5</small></li>
+            </ol>
           </div>
-        </aside>
-      </section>
-
-      <section class="orders-section" id="orders">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Saved tickets</p>
-            <h2>ဒီ browser ထဲက tickets</h2>
+          <div class="hero-art" aria-hidden="true">
+            <img class="hero-plate plate-a" src="images/dishes/dish-duck.webp" alt="" />
+            <img class="hero-plate plate-b" src="images/dishes/dish-xiangguo.webp" alt="" />
+            <img class="hero-duck" src="images/mascot/duck-bowl.webp" alt="" />
           </div>
-          <button class="ghost-button" id="exportOrdersButton" type="button">CSV ထုတ်မယ်</button>
         </div>
-        <div class="order-board" id="orderBoard"></div>
       </section>
+      <div class="zigzag" aria-hidden="true"></div>
+
+      <nav class="catnav" id="catnav" aria-label="Menu sections"></nav>
+
+      <div class="page" id="menu">
+        <section class="section" id="sec-bowl">
+          <div class="section-head">
+            <h2 data-i18n="secBowl">Build your bowl</h2>
+            <p data-i18n="secBowlSub">Meat &amp; vegetables ฿55 per 100 g. Two styles, five broths.</p>
+          </div>
+          <div class="dish-pick" id="dishPick"></div>
+        </section>
+
+        <div id="sections"></div>
+
+        <section class="section spice-poster" aria-labelledby="spiceTitle">
+          <div class="section-head">
+            <h2 id="spiceTitle" data-i18n="spiceTitle">Tell me your spicy level</h2>
+            <p data-i18n="spiceSub">Pick it when you build your bowl. Mala (numbing) is a separate 1–5 scale.</p>
+          </div>
+          <div class="spice-row" id="spiceRow"></div>
+        </section>
+      </div>
     </main>
 
-    <dialog class="ticket-dialog" id="ticketDialog">
-      <div class="dialog-header">
-        <div>
-          <p class="section-kicker">Menu ticket</p>
-          <h2 id="ticketTitle">Ticket ready</h2>
+    <footer class="footer">
+      <div class="zigzag" aria-hidden="true"></div>
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="images/brand/logo-mark.png" alt="" width="40" height="44" />
+          <div>
+            <strong>MAHA DUCK</strong>
+            <span>THE MASTER OF MALA</span>
+          </div>
         </div>
-        <button class="icon-button" id="closeDialogButton" type="button" aria-label="Close ticket">×</button>
+        <p id="footerInfo"></p>
+        <p class="footer-links"><a href="#" id="myOrdersLink" data-i18n="myOrders">My orders</a> · <a href="admin.html" data-i18n="staff">Staff</a></p>
       </div>
-      <pre id="ticketText" class="ticket-text"></pre>
-      <div class="dialog-actions">
-        <button class="ghost-button" id="shareTicketButton" type="button">Share</button>
-        <button class="ghost-button" id="copyTicketButton" type="button">Copy</button>
-        <button class="primary-button" id="printTicketButton" type="button">Print</button>
+    </footer>
+
+    <!-- Sticky bottom order bar (mobile) -->
+    <button class="orderbar" id="orderbar" type="button" hidden>
+      <span class="orderbar-count" id="orderbarCount">0</span>
+      <span class="orderbar-label" data-i18n="viewOrder">View order</span>
+      <span class="orderbar-total" id="orderbarTotal">฿0</span>
+    </button>
+
+    <!-- Maha Mala Duck set builder -->
+    <dialog class="sheet" id="setSheet" aria-labelledby="setTitle">
+      <div class="sheet-inner">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
+          </button>
+          <div>
+            <h2 id="setTitle">Maha Mala Duck</h2>
+            <div id="setProgress"></div>
+          </div>
+        </header>
+        <div class="sheet-body" id="setBody"></div>
+        <footer class="sheet-foot">
+          <button class="btn btn-line" type="button" id="setBack" data-i18n="back">Back</button>
+          <button class="btn btn-red btn-grow" type="button" id="setNext">Next</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <!-- Bowl builder -->
+    <dialog class="sheet" id="builder" aria-labelledby="builderTitle">
+      <form method="dialog" class="sheet-inner" id="builderForm">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
+          </button>
+          <div>
+            <h2 id="builderTitle">Build your bowl</h2>
+            <div class="progress" id="builderProgress"></div>
+          </div>
+        </header>
+        <div class="sheet-body" id="builderBody"></div>
+        <footer class="sheet-foot">
+          <button class="btn btn-line" type="button" id="builderBack" data-i18n="back">Back</button>
+          <button class="btn btn-red btn-grow" type="button" id="builderNext">Next</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Cart & checkout -->
+    <dialog class="sheet sheet-right" id="cart" aria-labelledby="cartTitle">
+      <div class="sheet-inner">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
+          </button>
+          <h2 id="cartTitle" data-i18n="yourOrder">Your order</h2>
+        </header>
+        <div class="sheet-body" id="cartBody"></div>
+        <footer class="sheet-foot" id="cartFoot"></footer>
+      </div>
+    </dialog>
+
+    <!-- Simple item options (sets / spicy sides) -->
+    <dialog class="sheet" id="itemSheet">
+      <div class="sheet-inner">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
+          </button>
+          <h2 id="itemTitle"></h2>
+        </header>
+        <div class="sheet-body" id="itemBody"></div>
+        <footer class="sheet-foot" id="itemFoot"></footer>
       </div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js"></script>
+    <script src="settings/config.js"></script>
+    <script src="settings/menu.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/components.js"></script>
+    <script src="vendor/qrcode.js"></script>
+    <script src="js/promptpay.js"></script>
+    <script src="js/app.js"></script>
   </body>
 </html>
