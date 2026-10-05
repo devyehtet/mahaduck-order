@@ -95,6 +95,26 @@
   }
   const deliveryFee = () => { const q = quote(); return q.known ? q.fee : 0; };
   const kmText = (km) => (km < 10 ? km.toFixed(1) : Math.round(km)) + " km";
+  function cleanMapLink(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    try {
+      const url = new URL(raw);
+      const host = url.hostname.toLowerCase();
+      const ok = url.protocol === "https:" && (
+        host === "maps.app.goo.gl" ||
+        host === "maps.google.com" ||
+        host === "www.google.com" ||
+        host === "google.com" ||
+        host.endsWith(".google.com") ||
+        host === "goo.gl"
+      );
+      if (!ok || (host === "goo.gl" && !url.pathname.startsWith("/maps/"))) return null;
+      return url.toString().slice(0, 300);
+    } catch {
+      return null;
+    }
+  }
 
   function toast(msg) {
     const el = $("#toast");
@@ -802,7 +822,7 @@
       customer_name: c.name,
       phone: state.type === "dinein" ? c.phone || null : c.phone,
       address: state.type === "delivery" ? (c.address.slice(0, 250) + where).slice(0, 300) : null,
-      map_link: state.type === "delivery" ? c.map || (d && d.src === "gps" ? `https://www.google.com/maps?q=${d.lat.toFixed(6)},${d.lng.toFixed(6)}` : null) : null,
+      map_link: state.type === "delivery" ? cleanMapLink(c.map) || (d && d.src === "gps" ? `https://www.google.com/maps?q=${d.lat.toFixed(6)},${d.lng.toFixed(6)}` : null) : null,
       pickup_time: state.type === "pickup" ? (state.pickup === "asap" ? "ASAP" : state.pickup) : null,
       payment: state.payment,
       note: ($("#fNote") && $("#fNote").value.trim()) || null,
@@ -842,7 +862,7 @@
     const flow = orderType === "delivery" ? ["new", "preparing", "ready", "out_for_delivery", "completed"] : ["new", "preparing", "ready", "completed"];
     const idx = flow.indexOf(status);
     const provider = status === "out_for_delivery" && deliveryProvider ? `<p class="delivery-info">${t("deliveryWith")}: <strong>${esc(deliveryProvider)}</strong>${deliveryStartedAt ? ` · ${new Date(deliveryStartedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}</p>` : "";
-    return `<ol class="tracker">${flow.map((s, i) => `<li class="${i <= idx ? "done" : ""} ${i === idx && s !== "completed" ? "cur" : ""}"><i>${i < idx || status === "completed" ? "✓" : i + 1}</i>${t("st_" + s)}</li>`).join("")}</ol>
+    return `<ol class="tracker" style="--steps:${flow.length}">${flow.map((s, i) => `<li class="${i <= idx ? "done" : ""} ${i === idx && s !== "completed" ? "cur" : ""}"><i>${i < idx || status === "completed" ? "✓" : i + 1}</i>${t("st_" + s)}</li>`).join("")}</ol>
       <p class="status-text">${t("stDesc_" + status)}</p>${provider}`;
   }
 

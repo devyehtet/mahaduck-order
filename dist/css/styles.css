@@ -494,7 +494,7 @@ textarea { resize: vertical; min-height: 70px; }
 .success img { width: 170px; border-radius: 24px; border: 3px solid var(--gold); }
 .success h3 { font-family: var(--display); font-size: 28px; color: var(--green); }
 .code-box { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 28px; font-weight: 700; letter-spacing: .08em; background: var(--paper); border: 2px dashed var(--red); color: var(--red); padding: 8px 18px; border-radius: 14px; }
-.tracker { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; position: relative; }
+.tracker { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(var(--steps, 4), 1fr); width: 100%; position: relative; }
 .tracker li { display: grid; justify-items: center; gap: 6px; font-size: 12px; color: var(--muted); position: relative; text-align: center; }
 .tracker li::before { content: ""; position: absolute; top: 13px; left: -50%; right: 50%; height: 3px; background: var(--line); z-index: 0; }
 .tracker li:first-child::before { display: none; }

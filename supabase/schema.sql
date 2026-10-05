@@ -44,6 +44,59 @@ alter table public.orders add column if not exists delivery_provider text check 
 alter table public.orders add column if not exists delivery_started_at timestamptz;
 alter table public.orders drop constraint if exists orders_status_check;
 alter table public.orders add constraint orders_status_check check (status in ('new','preparing','ready','out_for_delivery','completed','cancelled'));
+alter table public.orders drop constraint if exists orders_payment_check;
+alter table public.orders add constraint orders_payment_check check (payment in ('cash','promptpay'));
+alter table public.orders drop constraint if exists orders_map_link_check;
+alter table public.orders add constraint orders_map_link_check
+  check (map_link is null or (char_length(map_link) <= 300 and map_link ~* '^https://(maps\.app\.goo\.gl/|maps\.google\.|([a-z0-9-]+\.)?google\.[a-z.]+/maps|goo\.gl/maps/)'));
+
+create or replace function public.validate_order_amounts()
+returns trigger language plpgsql as $$
+declare
+  item jsonb;
+  qty integer;
+  unit_price integer;
+  line_total integer;
+  calc_subtotal integer := 0;
+begin
+  if jsonb_typeof(new.items) <> 'array' or jsonb_array_length(new.items) < 1 or jsonb_array_length(new.items) > 60 then
+    raise exception 'Order must include 1 to 60 items';
+  end if;
+
+  for item in select * from jsonb_array_elements(new.items) loop
+    qty := (item ->> 'qty')::integer;
+    unit_price := (item ->> 'unit_price')::integer;
+    line_total := (item ->> 'line_total')::integer;
+    if qty < 1 or qty > 99 or unit_price < 0 or line_total <> qty * unit_price then
+      raise exception 'Invalid order line total';
+    end if;
+    calc_subtotal := calc_subtotal + line_total;
+  end loop;
+
+  if new.subtotal <> calc_subtotal then
+    raise exception 'Invalid order subtotal';
+  end if;
+  if new.delivery_fee is not null and new.delivery_fee < 0 then
+    raise exception 'Invalid delivery fee';
+  end if;
+  if new.total <> new.subtotal + coalesce(new.delivery_fee, 0) then
+    raise exception 'Invalid order total';
+  end if;
+  if new.cash_received is not null and new.cash_received < 0 then
+    raise exception 'Invalid cash amount';
+  end if;
+  if new.payment_status = 'paid' and new.cash_received is not null and new.cash_received < new.total then
+    raise exception 'Cash received is lower than order total';
+  end if;
+  return new;
+exception
+  when invalid_text_representation then
+    raise exception 'Invalid order amount format';
+end $$;
+
+drop trigger if exists orders_validate_amounts on public.orders;
+create trigger orders_validate_amounts before insert or update of items, subtotal, delivery_fee, total, cash_received, payment_status
+  on public.orders for each row execute function public.validate_order_amounts();
 
 -- v3: payment slip (customer attaches the transfer slip; staff see it on the dashboard)
 alter table public.orders add column if not exists has_slip boolean not null default false;

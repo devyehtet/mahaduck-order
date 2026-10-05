@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const scripts = {
   customer: [
-    "/legacy/settings/config.js",
+    "/api/runtime-config",
     "/legacy/settings/menu.js",
     "/legacy/js/api.js",
     "/legacy/js/i18n.js",
@@ -15,7 +15,7 @@ const scripts = {
     "/legacy/js/app.js",
   ],
   admin: [
-    "/legacy/settings/config.js",
+    "/api/runtime-config",
     "/legacy/settings/menu.js",
     "/legacy/js/api.js",
     "/legacy/js/i18n.js",
@@ -29,16 +29,23 @@ const scripts = {
 export default function LegacyBootstrap({ page, children }) {
   useEffect(() => {
     document.body.classList.toggle("admin", page === "admin");
+    window.__MAHA_LEGACY_SCRIPTS__ ||= new Set();
     let cancelled = false;
 
     async function loadScripts() {
       for (const src of scripts[page]) {
         if (cancelled) return;
+        if (window.__MAHA_LEGACY_SCRIPTS__.has(src)) continue;
         await new Promise((resolve, reject) => {
+          window.__MAHA_LEGACY_SCRIPTS__.add(src);
           const script = document.createElement("script");
           script.src = src;
+          script.dataset.mahaLegacyScript = src;
           script.onload = resolve;
-          script.onerror = () => reject(new Error(`Could not load ${src}`));
+          script.onerror = () => {
+            window.__MAHA_LEGACY_SCRIPTS__.delete(src);
+            reject(new Error(`Could not load ${src}`));
+          };
           document.body.appendChild(script);
         });
       }

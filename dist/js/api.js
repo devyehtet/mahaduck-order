@@ -8,6 +8,7 @@
   const DEMO_SETTINGS = "mahaduck-demo-settings";
   const DEMO_SLIPS = "mahaduck-demo-slips";
   const SESSION = "mahaduck-staff-session";
+  let serverDemo = null;
 
   const store = {
     get(k, fallback) {
@@ -39,6 +40,86 @@
     return data;
   }
 
+  async function demoRest(path, { method = "GET", body } = {}) {
+    const res = await fetch("/api/demo" + path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+    if (!res.ok) {
+      const err = new Error((data && (data.message || data.error)) || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  async function demo(path, options, localFallback) {
+    if (serverDemo === false || location.protocol === "file:") return localFallback();
+    try {
+      const data = await demoRest(path, options);
+      serverDemo = true;
+      return data;
+    } catch (error) {
+      const canFallback = serverDemo !== true && (error.status === 404 || error.status === 405 || error.name === "TypeError");
+      if (!canFallback) throw error;
+      serverDemo = false;
+      return localFallback();
+    }
+  }
+
+  function localCreateOrder(order, staff = false) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const row = staff
+        ? { status: "preparing", payment_status: "unpaid", ...order, source: "pos", code: makeCode() }
+        : { ...order, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
+      row.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+      row.created_at = new Date().toISOString();
+      const all = store.get(DEMO_ORDERS, []);
+      if (all.some((x) => x.code === row.code)) continue;
+      all.unshift(row);
+      store.set(DEMO_ORDERS, all.slice(0, 300));
+      return row;
+    }
+    throw new Error("Could not create order");
+  }
+
+  function localOrderStatus(code) {
+    const o = store.get(DEMO_ORDERS, []).find((x) => x.code === code);
+    return o ? { status: o.status, total: o.total, created_at: o.created_at, payment_status: o.payment_status || "unpaid", order_type: o.order_type, delivery_provider: o.delivery_provider || null, delivery_started_at: o.delivery_started_at || null } : null;
+  }
+
+  function localClaimPaid(code) {
+    const all = store.get(DEMO_ORDERS, []);
+    const o = all.find((x) => x.code === code);
+    if (o && o.payment_status !== "paid") o.payment_status = "claimed";
+    store.set(DEMO_ORDERS, all);
+    return true;
+  }
+
+  function localAttachSlip(code, image) {
+    const all = store.get(DEMO_ORDERS, []);
+    const o = all.find((x) => x.code === code);
+    if (!o || o.payment_status === "paid") return false;
+    const slips = store.get(DEMO_SLIPS, {});
+    slips[code] = image;
+    const keep = Object.keys(slips).slice(-12);
+    localStorage.setItem(DEMO_SLIPS, JSON.stringify(Object.fromEntries(keep.map((k) => [k, slips[k]]))));
+    o.has_slip = true; o.payment_status = "claimed";
+    store.set(DEMO_ORDERS, all);
+    return true;
+  }
+
+  function localUpdateOrder(id, patch) {
+    const all = store.get(DEMO_ORDERS, []);
+    const o = all.find((x) => x.id === id);
+    if (o) Object.assign(o, patch, { updated_at: new Date().toISOString() });
+    store.set(DEMO_ORDERS, all);
+  }
+
   // ---------- staff session ----------
   async function session() {
     const s = store.get(SESSION, null);
@@ -62,18 +143,13 @@
 
     // Customer (online) order. Staff POS orders use createStaffOrder.
     async createOrder(order, staff = false) {
+      if (!live) {
+        return demo("/orders", { method: "POST", body: { order, staff } }, () => localCreateOrder(order, staff));
+      }
       for (let attempt = 0; attempt < 4; attempt++) {
         const row = staff
           ? { status: "preparing", payment_status: "unpaid", ...order, source: "pos", code: makeCode() }
           : { ...order, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
-        if (!live) {
-          row.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
-          row.created_at = new Date().toISOString();
-          const all = store.get(DEMO_ORDERS, []);
-          all.unshift(row);
-          store.set(DEMO_ORDERS, all.slice(0, 300));
-          return row;
-        }
         try {
           await rest("/rest/v1/orders", { method: "POST", body: row, prefer: "return=minimal", token: staff ? await token() : undefined });
           row.created_at = new Date().toISOString();
@@ -88,8 +164,7 @@
 
     async orderStatus(code) {
       if (!live) {
-        const o = store.get(DEMO_ORDERS, []).find((x) => x.code === code);
-        return o ? { status: o.status, total: o.total, created_at: o.created_at, payment_status: o.payment_status || "unpaid", order_type: o.order_type, delivery_provider: o.delivery_provider || null, delivery_started_at: o.delivery_started_at || null } : null;
+        return demo(`/order-status?code=${encodeURIComponent(code)}`, {}, () => localOrderStatus(code));
       }
       const rows = await rest("/rest/v1/rpc/order_status", { method: "POST", body: { p_code: code } });
       return rows && rows[0] ? rows[0] : null;
@@ -97,11 +172,7 @@
 
     async claimPaid(code) {
       if (!live) {
-        const all = store.get(DEMO_ORDERS, []);
-        const o = all.find((x) => x.code === code);
-        if (o && o.payment_status !== "paid") o.payment_status = "claimed";
-        store.set(DEMO_ORDERS, all);
-        return true;
+        return demo("/claim-paid", { method: "POST", body: { code } }, () => localClaimPaid(code));
       }
       return rest("/rest/v1/rpc/claim_paid", { method: "POST", body: { p_code: code } });
     },
@@ -109,23 +180,14 @@
     // Customer attaches a transfer slip (compressed JPEG data URL) → order becomes "claimed"
     async attachSlip(code, image) {
       if (!live) {
-        const all = store.get(DEMO_ORDERS, []);
-        const o = all.find((x) => x.code === code);
-        if (!o || o.payment_status === "paid") return false;
-        const slips = store.get(DEMO_SLIPS, {});
-        slips[code] = image;
-        const keep = Object.keys(slips).slice(-12); // browser storage is small — keep the latest only
-        localStorage.setItem("mahaduck-demo-slips", JSON.stringify(Object.fromEntries(keep.map((k) => [k, slips[k]])))); // throws if full
-        o.has_slip = true; o.payment_status = "claimed";
-        store.set(DEMO_ORDERS, all);
-        return true;
+        return demo("/slips", { method: "POST", body: { code, image } }, () => localAttachSlip(code, image));
       }
       return rest("/rest/v1/rpc/attach_slip", { method: "POST", body: { p_code: code, p_image: image } });
     },
 
     // Staff: load the slip image for one order (null if none / expired)
     async getSlip(code) {
-      if (!live) return store.get(DEMO_SLIPS, {})[code] || null;
+      if (!live) return demo(`/slips/${encodeURIComponent(code)}`, {}, () => store.get(DEMO_SLIPS, {})[code] || null);
       const rows = await rest(`/rest/v1/order_slips?code=eq.${encodeURIComponent(code)}&select=image`, { token: await token() });
       return rows && rows[0] ? rows[0].image : null;
     },
@@ -135,7 +197,7 @@
     },
 
     async getSettings() {
-      if (!live) return store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" });
+      if (!live) return demo("/settings", {}, () => store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" }));
       try {
         const rows = await rest("/rest/v1/settings?id=eq.1&select=accepting_orders,notice");
         return rows[0] || { accepting_orders: true, notice: "" };
@@ -154,24 +216,27 @@
     async staffEmail() { const s = await session(); return s && s.user ? s.user.email : ""; },
 
     async listOrders(sinceISO) {
-      if (!live) return store.get(DEMO_ORDERS, []).filter((o) => !sinceISO || o.created_at >= sinceISO);
+      if (!live) {
+        const path = "/orders" + (sinceISO ? `?since=${encodeURIComponent(sinceISO)}` : "");
+        return demo(path, {}, () => store.get(DEMO_ORDERS, []).filter((o) => !sinceISO || o.created_at >= sinceISO));
+      }
       const q = `/rest/v1/orders?select=*&order=created_at.desc&limit=500` + (sinceISO ? `&created_at=gte.${encodeURIComponent(sinceISO)}` : "");
       return rest(q, { token: await token() });
     },
 
     async updateOrder(id, patch) {
       if (!live) {
-        const all = store.get(DEMO_ORDERS, []);
-        const o = all.find((x) => x.id === id);
-        if (o) Object.assign(o, patch, { updated_at: new Date().toISOString() });
-        store.set(DEMO_ORDERS, all);
-        return;
+        return demo(`/orders/${encodeURIComponent(id)}`, { method: "PATCH", body: patch }, () => localUpdateOrder(id, patch));
       }
       await rest(`/rest/v1/orders?id=eq.${id}`, { method: "PATCH", body: { ...patch, updated_at: new Date().toISOString() }, token: await token(), prefer: "return=minimal" });
     },
 
     async saveSettings(patch) {
-      if (!live) { store.set(DEMO_SETTINGS, { ...store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" }), ...patch }); return; }
+      if (!live) {
+        return demo("/settings", { method: "PATCH", body: patch }, () => {
+          store.set(DEMO_SETTINGS, { ...store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" }), ...patch });
+        });
+      }
       await rest(`/rest/v1/settings?id=eq.1`, { method: "PATCH", body: patch, token: await token(), prefer: "return=minimal" });
     },
 

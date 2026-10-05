@@ -9,6 +9,26 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const money = (n) => CFG.currency + Number(n || 0).toLocaleString("en-US");
+  function safeMapLink(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      const url = new URL(raw);
+      const host = url.hostname.toLowerCase();
+      const ok = url.protocol === "https:" && (
+        host === "maps.app.goo.gl" ||
+        host === "maps.google.com" ||
+        host === "www.google.com" ||
+        host === "google.com" ||
+        host.endsWith(".google.com") ||
+        host === "goo.gl"
+      );
+      if (!ok || (host === "goo.gl" && !url.pathname.startsWith("/maps/"))) return "";
+      return url.toString();
+    } catch {
+      return "";
+    }
+  }
 
   const initialView = new URLSearchParams(location.search).get("view");
   const state = {
@@ -312,7 +332,7 @@
   function card(o) {
     const mins = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
     const late = ACTIVE.includes(o.status) && mins >= 20;
-    const map = o.map_link || (o.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(o.address) : "");
+    const map = safeMapLink(o.map_link) || (o.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(o.address) : "");
     const dispatchReady = o.status === "ready" && o.order_type === "delivery";
     const next = dispatchReady ? null : NEXT[o.status];
     const busy = state.busy.has(o.id) ? "disabled" : "";
