@@ -27,7 +27,8 @@
   }
 
   async function rest(path, { method = "GET", body, token, prefer } = {}) {
-    const headers = { apikey: key, Authorization: `Bearer ${token || key}`, "Content-Type": "application/json" };
+    const headers = { apikey: key, "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     if (prefer) headers.Prefer = prefer;
     const res = await fetch(base + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     const text = await res.text();

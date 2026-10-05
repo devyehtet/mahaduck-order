@@ -45,7 +45,7 @@ For real customer ordering:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ```
 
 The Next.js app loads those values through `/api/runtime-config`, so orders from any device/network go to the same Supabase database and appear in `/admin`.

@@ -10,7 +10,12 @@ function jsString(value) {
 export async function GET() {
   const source = await readFile(join(process.cwd(), "dist", "settings", "config.js"), "utf8");
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    "";
   const override = `
 ;(() => {
   window.MAHA_CONFIG = window.MAHA_CONFIG || {};
