@@ -197,7 +197,7 @@
     details.push(`Taste ${ta.id}: ${ta.name}`);
     if (SET.askSpicy) details.push(`Spicy ${dlg.spicy} (${sp ? sp.name : "not spicy"}) · Mala ${dlg.mala}`);
     if (dlg.note) details.push(`“${dlg.note}”`);
-    addLine({ key: "set|" + z.id + "|" + details.join("|"), name: `${it.name} · ${z.name}`, unit: z.price + addonTotal(), qty: 1, details });
+    addLine({ key: "set|" + z.id + "|" + details.join("|"), name: `${it.name} · ${z.name}`, unit: z.price + addonTotal(), qty: 1, details, inventoryIds: [...dlg.meatPicks, ...dlg.vegPicks, ...dlg.addons] });
     closeDlg();
   }
 
@@ -270,7 +270,7 @@
       payment: method,
       payment_status: paid ? "paid" : "unpaid",
       cash_received: cash,
-      items: sale.lines.map((l) => ({ name: l.name, qty: l.qty, unit_price: l.unit, line_total: l.unit * l.qty, details: l.details })),
+      items: sale.lines.map((l) => ({ name: l.name, qty: l.qty, unit_price: l.unit, line_total: l.unit * l.qty, details: l.details, inventory_ids: l.inventoryIds || [] })),
       subtotal: tot, delivery_fee: null, total: tot, status: "preparing", lang: A.lang(),
     };
     const btn = $("#payConfirm") || $("#posLater");

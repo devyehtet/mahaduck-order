@@ -12,7 +12,7 @@ const PAYMENT_STATUSES = new Set(["unpaid", "claimed", "paid"]);
 
 const defaults = () => ({
   orders: [],
-  settings: { accepting_orders: true, notice: "" },
+  settings: { accepting_orders: true, notice: "", inventory: {} },
   slips: {},
 });
 
@@ -60,7 +60,9 @@ export function safeMapLink(value) {
 async function readStore() {
   try {
     const parsed = JSON.parse(await readFile(/* turbopackIgnore: true */ STORE_PATH, "utf8"));
-    return { ...defaults(), ...parsed, settings: { ...defaults().settings, ...(parsed.settings || {}) } };
+    const settings = { ...defaults().settings, ...(parsed.settings || {}) };
+    if (!settings.inventory || typeof settings.inventory !== "object" || Array.isArray(settings.inventory)) settings.inventory = {};
+    return { ...defaults(), ...parsed, settings };
   } catch {
     return defaults();
   }
@@ -93,6 +95,9 @@ function normalizeItems(items) {
     const qty = Math.max(1, Math.min(99, int(item.qty, 1)));
     const unitPrice = int(item.unit_price, 0);
     const details = Array.isArray(item.details) ? item.details.map((entry) => text(entry, 160)).filter(Boolean) : [];
+    const inventoryIds = Array.isArray(item.inventory_ids)
+      ? [...new Set(item.inventory_ids.map((entry) => text(entry, 80)).filter(Boolean))].slice(0, 40)
+      : [];
     return {
       name: text(item.name, 120) || "Item",
       th: text(item.th, 120) || "",
@@ -100,8 +105,35 @@ function normalizeItems(items) {
       unit_price: unitPrice,
       line_total: unitPrice * qty,
       details,
+      inventory_ids: inventoryIds,
     };
   });
+}
+
+export function normalizeInventory(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  return Object.fromEntries(
+    Object.entries(input)
+      .slice(0, 500)
+      .map(([key, value]) => [text(key, 80), Math.max(0, Math.min(9999, int(value, 0)))])
+      .filter(([key]) => key)
+  );
+}
+
+function applyInventory(state, items) {
+  const inv = normalizeInventory(state.settings.inventory);
+  const needs = {};
+  for (const item of items) {
+    const qty = Math.max(1, Math.min(99, int(item.qty, 1)));
+    for (const id of item.inventory_ids || []) needs[id] = (needs[id] || 0) + qty;
+  }
+  for (const [id, qty] of Object.entries(needs)) {
+    if (!Object.prototype.hasOwnProperty.call(inv, id)) continue;
+    const current = int(inv[id], 0);
+    if (current < qty) throw Object.assign(new Error("Some selected items are out of stock"), { status: 409 });
+    inv[id] = current - qty;
+  }
+  state.settings.inventory = inv;
 }
 
 export function normalizeOrder(input, staff = false) {
@@ -159,6 +191,7 @@ export function createDemoOrder(input, staff = false) {
       updated_at: now,
       ...normalizeOrder(input, staff),
     };
+    applyInventory(state, order.items);
     state.orders.unshift(order);
     state.orders = state.orders.slice(0, 500);
     return order;

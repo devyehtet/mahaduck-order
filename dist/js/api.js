@@ -13,6 +13,7 @@
   const DEMO_SETTINGS = "mahaduck-demo-settings";
   const DEMO_SLIPS = "mahaduck-demo-slips";
   const SESSION = "mahaduck-staff-session";
+  const DEFAULT_SETTINGS = { accepting_orders: true, notice: "", inventory: {} };
   let serverDemo = null;
 
   const store = {
@@ -29,6 +30,35 @@
     const r = crypto.getRandomValues(new Uint8Array(5));
     r.forEach((n) => (s += abc[n % abc.length]));
     return "MD-" + s;
+  }
+
+  function stockNeeds(items) {
+    const needs = {};
+    (items || []).forEach((item) => {
+      const qty = Math.max(1, Math.min(99, Number(item.qty) || 1));
+      const ids = Array.isArray(item.inventory_ids) ? item.inventory_ids : [];
+      ids.forEach((id) => {
+        const key = String(id || "").trim();
+        if (key) needs[key] = (needs[key] || 0) + qty;
+      });
+    });
+    return needs;
+  }
+
+  function applyLocalInventory(items) {
+    const settings = store.get(DEMO_SETTINGS, DEFAULT_SETTINGS);
+    const inv = settings.inventory && typeof settings.inventory === "object" && !Array.isArray(settings.inventory) ? { ...settings.inventory } : {};
+    Object.entries(stockNeeds(items)).forEach(([id, qty]) => {
+      if (!Object.prototype.hasOwnProperty.call(inv, id)) return;
+      const cur = Math.max(0, Math.round(Number(inv[id]) || 0));
+      if (cur < qty) {
+        const err = new Error("Some selected items are out of stock");
+        err.status = 409;
+        throw err;
+      }
+      inv[id] = cur - qty;
+    });
+    store.set(DEMO_SETTINGS, { ...DEFAULT_SETTINGS, ...settings, inventory: inv });
   }
 
   async function rest(path, { method = "GET", body, token, prefer } = {}) {
@@ -87,6 +117,7 @@
       row.created_at = new Date().toISOString();
       const all = store.get(DEMO_ORDERS, []);
       if (all.some((x) => x.code === row.code)) continue;
+      applyLocalInventory(row.items);
       all.unshift(row);
       store.set(DEMO_ORDERS, all.slice(0, 300));
       return row;
@@ -231,11 +262,11 @@
     },
 
     async getSettings() {
-      if (!live) return demo("/settings", {}, () => store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" }));
+      if (!live) return demo("/settings", {}, () => store.get(DEMO_SETTINGS, DEFAULT_SETTINGS));
       try {
-        const rows = await rest("/rest/v1/settings?id=eq.1&select=accepting_orders,notice");
-        return rows[0] || { accepting_orders: true, notice: "" };
-      } catch { return { accepting_orders: true, notice: "" }; }
+        const rows = await rest("/rest/v1/settings?id=eq.1&select=accepting_orders,notice,inventory");
+        return rows[0] || DEFAULT_SETTINGS;
+      } catch { return DEFAULT_SETTINGS; }
     },
 
     // ---------- staff ----------
@@ -291,7 +322,7 @@
     async saveSettings(patch) {
       if (!live) {
         return demo("/settings", { method: "PATCH", body: patch }, () => {
-          store.set(DEMO_SETTINGS, { ...store.get(DEMO_SETTINGS, { accepting_orders: true, notice: "" }), ...patch });
+          store.set(DEMO_SETTINGS, { ...store.get(DEMO_SETTINGS, DEFAULT_SETTINGS), ...patch });
         });
       }
       await rest(`/rest/v1/settings?id=eq.1`, { method: "PATCH", body: patch, token: await token(), prefer: "return=minimal" });

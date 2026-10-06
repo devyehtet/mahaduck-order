@@ -72,6 +72,8 @@
         <button type="button" role="tab" data-view="customer" aria-selected="false">Customer</button>
         <button type="button" role="tab" data-view="counter" aria-selected="true">Counter</button>
         <button type="button" role="tab" data-view="kitchen" aria-selected="false">Kitchen</button>
+        <button type="button" role="tab" data-view="inventory" aria-selected="false" data-i18n="inventory">Inventory</button>
+        <button type="button" role="tab" data-view="daily" aria-selected="false" data-i18n="dailyReport">Daily</button>
         <button type="button" role="tab" data-view="tables" aria-selected="false" data-i18n="tables">Table QR</button>
       </nav>
 
@@ -104,6 +106,23 @@
       <main class="admin-main" id="kitchenView" hidden>
         <section class="stats" id="kitchenStats"></section>
         <div class="board kitchen-board" id="kitchenBoard"></div>
+      </main>
+
+      <main class="admin-main" id="inventoryView" hidden>
+        <div class="section-head"><h2 data-i18n="inventoryTitle">Set Menu inventory</h2><p data-i18n="inventorySub"></p></div>
+        <section class="stats" id="inventoryStats"></section>
+        <div class="inventory-board" id="inventoryBoard"></div>
+      </main>
+
+      <main class="admin-main" id="dailyView" hidden>
+        <div class="section-head"><h2 data-i18n="dailyTitle">Orders by day</h2><p data-i18n="dailySub"></p></div>
+        <section class="stats" id="dailyStats"></section>
+        <div class="toolbar">
+          <label class="range"><span data-i18n="range">Show</span>
+            <select id="dailyRangeSel"><option value="today" data-i18n="rToday">Today</option><option value="7" data-i18n="r7">7 days</option><option value="30" data-i18n="r30">30 days</option></select>
+          </label>
+        </div>
+        <div class="daily-board" id="dailyBoard"></div>
       </main>
 
       <main class="admin-main" id="tablesView" hidden>

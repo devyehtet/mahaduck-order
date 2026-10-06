@@ -2,7 +2,7 @@
 -- MAHA DUCK — Supabase database setup
 -- Supabase Dashboard → SQL Editor → New query → ဒီ file တစ်ခုလုံး paste → Run
 -- (အောက်ဆုံးက staff email ကို ကိုယ့် email နဲ့ အရင်ပြောင်းပါ)
--- Version 4 (POS + PromptPay + Slip + delivery tracking). ယခင် version run ပြီးသားဆိုရင်လည်း ဒီ file ကို ထပ် run လို့ရပါတယ်။
+-- Version 5 (POS + PromptPay + Slip + delivery tracking + inventory). ယခင် version run ပြီးသားဆိုရင်လည်း ဒီ file ကို ထပ် run လို့ရပါတယ်။
 -- =========================================================================
 
 -- 1) Orders ----------------------------------------------------------------
@@ -114,6 +114,11 @@ create table if not exists public.settings (
 );
 insert into public.settings (id) values (1) on conflict (id) do nothing;
 
+-- v5: Set Menu inventory. Keys are menu item ids, values are stock counts.
+alter table public.settings add column if not exists inventory jsonb not null default '{}';
+alter table public.settings drop constraint if exists settings_inventory_object_check;
+alter table public.settings add constraint settings_inventory_object_check check (jsonb_typeof(inventory) = 'object');
+
 -- 3) Staff list — only these emails can see / update orders --------------
 create table if not exists public.staff (
   email text primary key
@@ -222,6 +227,53 @@ end $$;
 drop trigger if exists orders_check_accepting on public.orders;
 create trigger orders_check_accepting before insert on public.orders
   for each row execute function public.check_accepting();
+
+-- Decrement tracked Set Menu item stock when an order is created.
+create or replace function public.apply_order_inventory()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  item jsonb;
+  item_id text;
+  qty integer;
+  inv jsonb;
+  needs jsonb := '{}'::jsonb;
+  row_need record;
+  current_stock integer;
+  required_stock integer;
+begin
+  select inventory into inv from public.settings where id = 1 for update;
+  if inv is null then inv := '{}'::jsonb; end if;
+
+  for item in select * from jsonb_array_elements(new.items) loop
+    qty := greatest(1, least(99, coalesce((item ->> 'qty')::integer, 1)));
+    if jsonb_typeof(item -> 'inventory_ids') = 'array' then
+      for item_id in select jsonb_array_elements_text(item -> 'inventory_ids') loop
+        if item_id is null or btrim(item_id) = '' then continue; end if;
+        needs := jsonb_set(needs, array[item_id], to_jsonb(coalesce((needs ->> item_id)::integer, 0) + qty), true);
+      end loop;
+    end if;
+  end loop;
+
+  for row_need in select key, value from jsonb_each(needs) loop
+    if inv ? row_need.key then
+      required_stock := (row_need.value #>> '{}')::integer;
+      current_stock := coalesce((inv ->> row_need.key)::integer, 0);
+      if current_stock < required_stock then
+        raise exception 'Insufficient stock for %', row_need.key;
+      end if;
+      inv := jsonb_set(inv, array[row_need.key], to_jsonb(current_stock - required_stock), true);
+    end if;
+  end loop;
+
+  update public.settings set inventory = inv where id = 1;
+  return new;
+exception
+  when invalid_text_representation then
+    raise exception 'Invalid inventory data';
+end $$;
+drop trigger if exists orders_apply_inventory on public.orders;
+create trigger orders_apply_inventory before insert on public.orders
+  for each row execute function public.apply_order_inventory();
 
 -- 6) ▼▼▼ ကိုယ့်ဝန်ထမ်း email တွေကို ဒီမှာထည့်ပါ (Authentication → Users မှာ ဖန်တီးထားတဲ့ email) ▼▼▼
 insert into public.staff (email) values

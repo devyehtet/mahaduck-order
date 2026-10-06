@@ -24,7 +24,7 @@
     destOther: false,
     payment: (CFG.paymentMethods && CFG.paymentMethods[0]) || "cash",
     pickup: "asap",
-    settings: { accepting_orders: true, notice: "" },
+    settings: { accepting_orders: true, notice: "", inventory: {} },
     cartView: "cart", // cart | checkout | success | orders
     lastOrder: null,
   };
@@ -38,10 +38,38 @@
   const SET = MENU.malaSet || null;
   const BOWL_ON = Boolean(MENU.bowl && MENU.bowl.enabled !== false);
   const firstSec = () => (BOWL_ON ? "sec-bowl" : "sec-" + MENU.sections[0].id);
+  function normalizeSettings(settings) {
+    const safe = settings || {};
+    return {
+      accepting_orders: safe.accepting_orders !== false,
+      notice: String(safe.notice || ""),
+      inventory: safe.inventory && typeof safe.inventory === "object" && !Array.isArray(safe.inventory) ? safe.inventory : {},
+    };
+  }
   const setItem = {};
   const setItemGroup = {};
   if (SET) SET.groups.forEach((g) => g.items.forEach((i) => { setItem[i.id] = i; setItemGroup[i.id] = g.id; }));
   const setPickKind = (id) => (["veg", "tofu"].includes(setItemGroup[id]) ? "veg" : "meat");
+  const DEFAULT_SET_STOCK = 20;
+  const stockOf = (id) => {
+    const inv = state.settings && state.settings.inventory && typeof state.settings.inventory === "object" ? state.settings.inventory : {};
+    const n = Number(inv[id]);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : DEFAULT_SET_STOCK;
+  };
+  const setStockName = (id) => (setItem[id] ? local(setItem[id]) : id);
+  const inventoryIdsForLine = (line) => {
+    if (!line || line.kind !== "set") return [];
+    const o = line.options || {};
+    return [...new Set([...(o.meatPicks || []), ...(o.vegPicks || []), ...(o.picks || []), ...(o.addons || [])].filter((id) => setItem[id]))];
+  };
+  function stockProblem(cart = state.cart) {
+    const needs = {};
+    cart.forEach((line) => inventoryIdsForLine(line).forEach((id) => (needs[id] = (needs[id] || 0) + line.qty)));
+    for (const [id, qty] of Object.entries(needs)) {
+      if (stockOf(id) < qty) return { id, qty };
+    }
+    return null;
+  }
   const setQuota = (z, kind) => z[`${kind}Pick`] || z.pick;
   const sizeById = SET ? Object.fromEntries(SET.sizes.map((z) => [z.id, z])) : {};
   const sizeName = (z, kitchen) => (kitchen ? z.name : state.lang === "th" ? z.th : state.lang === "my" ? z.my : z.name);
@@ -429,11 +457,13 @@
         const bucket = kind === "veg" ? setB.vegPicks : setB.meatPicks;
         const kindLeft = kind === "veg" ? vegLeft : meatLeft;
         const on = bucket.includes(i.id), add = setB.addons.includes(i.id);
+        const stock = stockOf(i.id);
         const offer = !on && !add && !left && canAddOn(i.id); // set is full -> this one would be an add-on
         const price = add || offer ? ` · <b class="plus">+${money(i.price)}</b>` : "";
+        const stockText = stock <= 0 ? ` · <b class="stock-out">${t("soldOut")}</b>` : ` · <b class="stock-left">${t("stockLeft").replace("{n}", stock)}</b>`;
         const photo = i.img ? `<img src="${i.img}" alt="" />` : "";
-        return `<button type="button" class="pick ${i.img ? "with-img" : ""} ${on ? "on" : ""} ${add ? "addon" : ""} ${offer ? "offer" : ""}" aria-pressed="${on || add}" data-spick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>
-          ${photo}<strong>${esc(local(i))}</strong><small>${esc(sub(i))}${price}</small></button>`;
+        return `<button type="button" class="pick ${i.img ? "with-img" : ""} ${on ? "on" : ""} ${add ? "addon" : ""} ${offer ? "offer" : ""}" aria-pressed="${on || add}" data-spick="${i.id}" ${!on && !add && (stock <= 0 || (kindLeft <= 0 && !offer)) ? "disabled" : ""}>
+          ${photo}<strong>${esc(local(i))}</strong><small>${esc(sub(i))}${price}${stockText}</small></button>`;
       };
       body.innerHTML = `<div class="pick-bar ${left ? "" : "full"}"><span>${esc(sizeName(z))} · ${money(z.price)}${setB.addons.length ? ` <em>+ ${t("addOn")} ${setB.addons.length} · ${money(extra)}</em>` : ""}</span><b>${setPickTotal()} / ${z.pick * 2}</b></div>
         <p class="hint" style="margin-top:10px"><b>${t("meatShort")} ${setB.meatPicks.length}/${meatQuota} · ${t("vegShort")} ${setB.vegPicks.length}/${vegQuota}</b><br>${left || !ADDONS_ON ? t("pickSetHint").replace(/\{n\}/g, z.pick) : t("addOnHint")}</p>
@@ -868,6 +898,23 @@
     const sub = subtotal();
     const orderType = "pickup";
     const fee = 0;
+    const resetButton = () => {
+      btn.disabled = false;
+      btn.textContent = t("placeOrder") + " · " + money(sub + fee);
+    };
+    try {
+      state.settings = normalizeSettings(await api.getSettings());
+      renderHeader();
+      const problem = stockProblem();
+      if (problem) {
+        $("#formError").textContent = t("stockShort").replace("{name}", setStockName(problem.id));
+        renderSections();
+        resetButton();
+        return;
+      }
+    } catch (e) {
+      console.warn("Could not refresh shop settings", e);
+    }
     const order = {
       order_type: orderType,
       table_no: null,
@@ -879,7 +926,7 @@
       payment: "cash",
       note: null,
       items: state.cart.map((l) => ({
-        name: l.name, th: l.th || "", qty: l.qty, unit_price: l.unitPrice, line_total: l.unitPrice * l.qty, details: optionLines(l, true),
+        name: l.name, th: l.th || "", qty: l.qty, unit_price: l.unitPrice, line_total: l.unitPrice * l.qty, details: optionLines(l, true), inventory_ids: inventoryIdsForLine(l),
       })),
       subtotal: sub,
       delivery_fee: null,
@@ -900,12 +947,12 @@
       renderSections();
       state.cartView = "success";
       renderCart();
+      api.getSettings().then((s) => { state.settings = normalizeSettings(s); renderHeader(); renderSections(); }).catch(() => {});
     } catch (e) {
       console.error(e);
       if (/accepting/i.test(e.message || "")) { state.settings.accepting_orders = false; renderHeader(); }
-      $("#formError").textContent = /accepting/i.test(e.message || "") ? t("closed") : t("errSend");
-      btn.disabled = false;
-      btn.textContent = t("placeOrder") + " · " + money(sub + fee);
+      $("#formError").textContent = /accepting/i.test(e.message || "") ? t("closed") : /stock|inventory|out of stock|insufficient/i.test(e.message || "") ? t("stockUnavailable") : t("errSend");
+      resetButton();
     }
   }
 
@@ -1059,6 +1106,7 @@
         const i = bucket.indexOf(d.spick), j = setB.addons.indexOf(d.spick);
         if (i >= 0) bucket.splice(i, 1);
         else if (j >= 0) setB.addons.splice(j, 1);
+        else if (stockOf(d.spick) <= 0) return toast(t("soldOut"));
         else if (bucket.length < setQuota(z, kind)) bucket.push(d.spick);
         else if (!setLeft(z) && canAddOn(d.spick) && setB.addons.length < 12) setB.addons.push(d.spick);
         return redraw();
@@ -1219,5 +1267,5 @@
 
   if (state.table) S.set("mahaduck-type", "dinein");
   applyLang();
-  api.getSettings().then((s) => { state.settings = s; renderHeader(); });
+  api.getSettings().then((s) => { state.settings = normalizeSettings(s); renderHeader(); renderSections(); });
 })();

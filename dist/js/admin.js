@@ -3,8 +3,10 @@
    ========================================================================= */
 (function () {
   const CFG = window.MAHA_CONFIG;
+  const MENU = window.MAHA_MENU || {};
   const api = window.MahaAPI;
   const S = api.store;
+  const DEFAULT_SET_STOCK = 20;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -42,16 +44,48 @@
     sound: S.get("mahaduck-admin-sound", true),
     autoPrint: S.get("mahaduck-admin-autoprint", false),
     payState: new Map(),
-    settings: { accepting_orders: true, notice: "" },
+    settings: { accepting_orders: true, notice: "", inventory: {} },
     timer: null,
     busy: new Set(),
-    view: ["customer", "counter", "kitchen", "tables"].includes(initialView) ? initialView : "counter",
+    view: ["customer", "counter", "kitchen", "inventory", "daily", "tables"].includes(initialView) ? initialView : "counter",
   };
   const t = window.makeT(() => state.lang);
   const ACTIVE = ["new", "preparing", "ready", "out_for_delivery"];
   const NEXT = { new: ["preparing", "a_accept"], preparing: ["ready", "a_ready"], ready: ["completed", "a_complete"], out_for_delivery: ["completed", "a_complete"] };
   const isFacebookOrder = (o) => (o.source || "online") === "online";
   const facebookNameRe = /^(online customer|guest|facebook customer)$/i;
+  const SET = MENU.malaSet || null;
+
+  function allSetGroups() {
+    return SET && Array.isArray(SET.groups) ? SET.groups : [];
+  }
+  function allSetRows() {
+    return allSetGroups().flatMap((group) => (group.items || []).map((item) => ({ group, item })));
+  }
+  function menuName(o) {
+    return state.lang === "th" && o.th ? o.th : state.lang === "my" && o.my ? o.my : o.name;
+  }
+  function normalizeInventory(raw) {
+    const input = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const inv = {};
+    allSetRows().forEach(({ item }) => {
+      const n = Number(input[item.id]);
+      inv[item.id] = Number.isFinite(n) && n >= 0 ? Math.round(n) : DEFAULT_SET_STOCK;
+    });
+    return inv;
+  }
+  function normalizeSettings(settings) {
+    const safe = settings || {};
+    return {
+      accepting_orders: safe.accepting_orders !== false,
+      notice: String(safe.notice || ""),
+      inventory: normalizeInventory(safe.inventory),
+    };
+  }
+  function stockOf(id) {
+    const n = Number((state.settings.inventory || {})[id]);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : DEFAULT_SET_STOCK;
+  }
 
   function updateDefaultLoginNote() {
     const emailInput = $("#loginForm input[name=email]");
@@ -181,7 +215,7 @@
   }
 
   function syncViewUI() {
-    const valid = ["customer", "counter", "kitchen", "tables"];
+    const valid = ["customer", "counter", "kitchen", "inventory", "daily", "tables"];
     if (!valid.includes(state.view)) state.view = "counter";
     const tabBar = document.querySelector(".admin-tabs");
     if (tabBar) tabBar.hidden = state.view === "kitchen";
@@ -190,6 +224,8 @@
     $("#customerView").hidden = state.view !== "customer";
     $("#counterView").hidden = state.view !== "counter";
     $("#kitchenView").hidden = state.view !== "kitchen";
+    $("#inventoryView").hidden = state.view !== "inventory";
+    $("#dailyView").hidden = state.view !== "daily";
     const legacyOrders = $("#ordersView");
     if (legacyOrders) legacyOrders.hidden = true;
     $("#tablesView").hidden = state.view !== "tables";
@@ -251,10 +287,92 @@
     }
   }
 
+  function renderInventoryView() {
+    const rows = allSetRows();
+    const out = rows.filter(({ item }) => stockOf(item.id) <= 0).length;
+    const low = rows.filter(({ item }) => {
+      const stock = stockOf(item.id);
+      return stock > 0 && stock <= 3;
+    }).length;
+    const totalStock = rows.reduce((sum, { item }) => sum + stockOf(item.id), 0);
+    const stats = document.getElementById("inventoryStats");
+    if (stats) {
+      stats.innerHTML = [
+        [t("inventoryTotal"), rows.length, ""],
+        [t("stock"), totalStock, "gold"],
+        [t("inventoryLow"), low, low ? "warn" : ""],
+        [t("inventoryOut"), out, out ? "red" : ""],
+      ].map(([l, v, c]) => `<div class="stat ${c}"><span>${esc(l)}</span><strong>${esc(v)}</strong></div>`).join("");
+    }
+    const board = document.getElementById("inventoryBoard");
+    if (!board) return;
+    board.innerHTML = allSetGroups().map((group) => {
+      const groupName = menuName(group);
+      const rowsHtml = (group.items || []).map((item) => {
+        const stock = stockOf(item.id);
+        const busy = state.busy.has("inv:" + item.id);
+        const status = stock <= 0 ? `<span class="inv-status out">${t("soldOut")}</span>` : stock <= 3 ? `<span class="inv-status low">${t("inventoryLow")}</span>` : "";
+        return `<div class="inv-row ${stock <= 0 ? "is-out" : ""}" data-id="${esc(item.id)}">
+          <div class="inv-food">${item.img ? `<img src="${esc(item.img)}" alt="" />` : `<span class="inv-ph"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /></span>`}
+            <div><strong>${esc(menuName(item))}</strong><small>${esc(item.th || "")} · ${money(item.price || 0)}</small>${status}</div></div>
+          <div class="inv-control" aria-label="${esc(t("stock"))}">
+            <button type="button" class="inv-step" data-inv-id="${esc(item.id)}" data-inv-d="-1" ${busy || stock <= 0 ? "disabled" : ""}>−</button>
+            <output>${stock}</output>
+            <button type="button" class="inv-step plus" data-inv-id="${esc(item.id)}" data-inv-d="1" ${busy ? "disabled" : ""}>+</button>
+          </div>
+        </div>`;
+      }).join("");
+      return `<section class="inv-group"><h3>${esc(groupName)} <small>${esc(group.th || "")}</small></h3>${rowsHtml}</section>`;
+    }).join("");
+  }
+
+  function dayKey(iso) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function dayLabel(key) {
+    const locale = state.lang === "th" ? "th-TH" : state.lang === "my" ? "en-GB" : "en-US";
+    return new Date(`${key}T00:00:00`).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  }
+  function renderDailyView() {
+    const valid = state.orders.filter((o) => o.status !== "cancelled");
+    const stats = document.getElementById("dailyStats");
+    if (stats) {
+      stats.innerHTML = [
+        [t("dailyOrders"), state.orders.length, ""],
+        [t("dailyNet"), money(valid.reduce((sum, o) => sum + (o.total || 0), 0)), "gold"],
+        [t("dailyActive"), state.orders.filter((o) => ACTIVE.includes(o.status)).length, "red"],
+        [t("dailyCancelled"), state.orders.filter((o) => o.status === "cancelled").length, ""],
+      ].map(([l, v, c]) => `<div class="stat ${c}"><span>${esc(l)}</span><strong>${esc(v)}</strong></div>`).join("");
+    }
+    const groups = new Map();
+    state.orders.forEach((order) => {
+      const key = dayKey(order.created_at);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(order);
+    });
+    const board = document.getElementById("dailyBoard");
+    if (!board) return;
+    const days = [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+    board.innerHTML = days.length ? days.map(([key, orders]) => {
+      const good = orders.filter((o) => o.status !== "cancelled");
+      const revenue = good.reduce((sum, o) => sum + (o.total || 0), 0);
+      const rows = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((o) => `<li>
+        <span><b>${esc(o.code)}</b><small>${clock(o.created_at)} · ${esc(customerName(o))}</small></span>
+        <em class="${o.status}">${t("st_" + o.status)}</em><strong>${money(o.total)}</strong>
+      </li>`).join("");
+      return `<article class="daily-card"><header><div><h3>${esc(dayLabel(key))}</h3><p>${orders.length} ${t("dailyOrders")} · ${t("dailyNet")} ${money(revenue)}</p></div><strong>${money(revenue)}</strong></header><ul>${rows}</ul></article>`;
+    }).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${t("noDaily")}</p></div>`;
+  }
+
   function render() {
     renderStats("stats", state.orders, "Orders");
     renderStats("customerStats", state.orders, "Customer");
     renderStats("kitchenStats", state.orders, "Kitchen");
+    const rangeSel = $("#rangeSel");
+    const dailyRangeSel = $("#dailyRangeSel");
+    if (rangeSel) rangeSel.value = state.range;
+    if (dailyRangeSel) dailyRangeSel.value = state.range;
 
     const valid = state.orders.filter((o) => o.status !== "cancelled");
     const revenue = valid.reduce((n, o) => n + (o.total || 0), 0);
@@ -270,6 +388,8 @@
       board.innerHTML = "";
       if (state.view === "customer") renderCustomerView();
       if (state.view === "kitchen") renderKitchenView();
+      if (state.view === "inventory") renderInventoryView();
+      if (state.view === "daily") renderDailyView();
       return;
     }
 
@@ -381,6 +501,30 @@
     render();
   }
 
+  async function changeInventory(id, delta) {
+    if (!id || state.busy.has("inv:" + id)) return;
+    const prev = { ...(state.settings.inventory || {}) };
+    const next = { ...prev, [id]: Math.max(0, stockOf(id) + delta) };
+    state.settings.inventory = next;
+    state.busy.add("inv:" + id);
+    renderInventoryView();
+    try {
+      await api.saveSettings({ inventory: next });
+      toast(t("inventorySaved"));
+    } catch (e) {
+      state.settings.inventory = prev;
+      toast(e.message || t("errSend"));
+    }
+    state.busy.delete("inv:" + id);
+    renderInventoryView();
+  }
+
+  function setRange(value) {
+    state.range = value;
+    state.known = null;
+    load();
+  }
+
   function setPage(css) {
     let st = document.getElementById("pageStyle");
     if (!st) { st = document.createElement("style"); st.id = "pageStyle"; document.head.appendChild(st); }
@@ -477,7 +621,13 @@
     $("#loginView").hidden = true;
     $("#dashView").hidden = false;
     $("#signOut").hidden = !api.live;
-    state.settings = await api.getSettings();
+    const rawSettings = await api.getSettings();
+    state.settings = normalizeSettings(rawSettings);
+    const rawInventory = rawSettings && rawSettings.inventory && typeof rawSettings.inventory === "object" ? rawSettings.inventory : {};
+    const hasAllInventory = allSetRows().every(({ item }) => Object.prototype.hasOwnProperty.call(rawInventory, item.id));
+    if (!hasAllInventory && allSetRows().length) {
+      api.saveSettings({ inventory: state.settings.inventory }).catch((error) => console.warn("Could not initialize inventory", error));
+    }
     $("#noticeInput").value = state.settings.notice || "";
     applyLang();
     startPolling();
@@ -530,6 +680,7 @@
     const d = el.dataset;
     if (d.lang) { state.lang = d.lang; S.set("mahaduck-admin-lang", d.lang); return applyLang(); }
     if (d.filter) { state.filter = d.filter; return render(); }
+    if (d.invId) return changeInventory(d.invId, Number(d.invD) || 0);
     if (d.set) {
       const orderEl = el.closest(".order");
       if (orderEl && orderEl.dataset.id) {
@@ -574,7 +725,8 @@
     try { await api.saveSettings({ accepting_orders: on }); toast(t("saved")); }
     catch (er) { state.settings.accepting_orders = !on; renderTop(); toast(er.message); }
   });
-  $("#rangeSel").addEventListener("change", (e) => { state.range = e.target.value; state.known = null; load(); });
+  $("#rangeSel").addEventListener("change", (e) => setRange(e.target.value));
+  $("#dailyRangeSel").addEventListener("change", (e) => setRange(e.target.value));
   window.addEventListener("resize", () => { clearTimeout(render.rt); render.rt = setTimeout(render, 150); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("#dashView").hidden) load(); });
   window.addEventListener("storage", (e) => { if (!api.live && e.key === "mahaduck-demo-orders") load(); });

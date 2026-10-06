@@ -77,6 +77,10 @@ window.MAHA_I18N = {
     ago: "ago", justNow: "just now", min: "min", hr: "h",
     noticeLabel: "Message to customers (optional)", save: "Save", saved: "Saved",
     range: "Show", rToday: "Today", r7: "7 days", r30: "30 days",
+    inventory: "Inventory", inventoryTitle: "Set Menu inventory", inventorySub: "Increase or decrease items customers can choose in the Mala Duck Set Menu. Stock 0 shows as sold out.",
+    inventoryTotal: "Tracked items", inventoryLow: "Low stock", inventoryOut: "Sold out", stock: "Stock", stockLeft: "{n} left", soldOut: "Sold out", inventorySaved: "Inventory updated",
+    stockUnavailable: "Some selected items are out of stock. Please choose again.", stockShort: "{name} is out of stock.",
+    dailyReport: "Daily", dailyTitle: "Orders by day", dailySub: "Facebook orders grouped by order date.", dailyOrders: "Orders", dailyNet: "Sales", dailyActive: "Active", dailyCancelled: "Cancelled", noDaily: "No orders in this range.",
   },
   th: {
     skip: "ข้ามไปที่เมนู",
@@ -154,6 +158,10 @@ window.MAHA_I18N = {
     ago: "ที่แล้ว", justNow: "เมื่อสักครู่", min: "นาที", hr: "ชม.",
     noticeLabel: "ข้อความถึงลูกค้า (ไม่บังคับ)", save: "บันทึก", saved: "บันทึกแล้ว",
     range: "แสดง", rToday: "วันนี้", r7: "7 วัน", r30: "30 วัน",
+    inventory: "สต็อก", inventoryTitle: "สต็อก Set Menu", inventorySub: "เพิ่มหรือลดวัตถุดิบที่ลูกค้าเลือกได้ใน Mala Duck Set Menu ถ้าเป็น 0 จะแสดงว่าหมด",
+    inventoryTotal: "รายการที่นับสต็อก", inventoryLow: "ใกล้หมด", inventoryOut: "หมด", stock: "สต็อก", stockLeft: "เหลือ {n}", soldOut: "หมดแล้ว", inventorySaved: "อัปเดตสต็อกแล้ว",
+    stockUnavailable: "บางรายการที่เลือกหมดแล้ว กรุณาเลือกใหม่", stockShort: "{name} หมดแล้ว",
+    dailyReport: "รายวัน", dailyTitle: "ออเดอร์ตามวัน", dailySub: "แสดงออเดอร์จาก Facebook แยกตามวันที่สั่ง", dailyOrders: "ออเดอร์", dailyNet: "ยอดขาย", dailyActive: "กำลังทำ", dailyCancelled: "ยกเลิก", noDaily: "ไม่มีออเดอร์ในช่วงนี้",
   },
   my: {
     skip: "Menu သို့သွားရန်",
@@ -231,6 +239,10 @@ window.MAHA_I18N = {
     ago: "အကြာ", justNow: "အခုလေးတင်", min: "မိနစ်", hr: "နာရီ",
     noticeLabel: "Customer တွေကိုပြမယ့်စာ (မထည့်လည်းရ)", save: "သိမ်းမယ်", saved: "သိမ်းပြီး",
     range: "ပြရန်", rToday: "ယနေ့", r7: "7 ရက်", r30: "30 ရက်",
+    inventory: "Inventory", inventoryTitle: "Set Menu Inventory", inventorySub: "Mala Duck Set Menu ထဲမှာ Customer ရွေးနိုင်တဲ့ item တွေကို +/− ပြင်ပါ။ Stock 0 ဆို ကုန်နေပြီလို့ပြမယ်။",
+    inventoryTotal: "Stock စစ်မည့် Item", inventoryLow: "နည်းနေ", inventoryOut: "ကုန်", stock: "Stock", stockLeft: "{n} ခုကျန်", soldOut: "ကုန်နေပါပြီ", inventorySaved: "Inventory သိမ်းပြီး",
+    stockUnavailable: "ရွေးထားတဲ့ item တချို့ stock မရှိတော့ပါ။ ပြန်ရွေးပါ။", stockShort: "{name} ကုန်နေပါပြီ။",
+    dailyReport: "နေ့အလိုက်", dailyTitle: "နေ့အလိုက် Order စာရင်း", dailySub: "Facebook ကနေဝင်တဲ့ Order တွေကို နေ့အလိုက်ကြည့်ရန်။", dailyOrders: "Order", dailyNet: "ရောင်းရငွေ", dailyActive: "လုပ်ဆဲ", dailyCancelled: "ပယ်ဖျက်", noDaily: "ဒီအချိန်ပိုင်းမှာ Order မရှိသေးပါ။",
   },
 };
 
