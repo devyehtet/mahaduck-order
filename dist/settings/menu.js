@@ -80,7 +80,7 @@ window.MAHA_MENU = {
     styles: [
       { id: "S1", dish: "malatang", name: "Spicy Bone Broth", th: "น้ำซุปกระดูกหม่าล่า", heat: 1, img: "images/broths/style-s1.webp" },
       { id: "S2", dish: "malatang", name: "Rich Tomato Soup", th: "ซุปมะเขือเทศเข้มข้น", heat: 0, img: "images/broths/style-s2.webp" },
-      { id: "S3", dish: "malatang", name: "Fresh Mushroom Soup", th: "ซุปเห็ดสด", heat: 0, img: "images/broths/style-s3.webp" },
+      { id: "S3", dish: "malatang", name: "Fresh Mushrooms Soup", th: "ซุปเห็ดสด", heat: 0, img: "images/broths/style-s3.webp" },
       { id: "S4", dish: "malatang", name: "Pumpkin Soup", th: "ซุปฟักทอง", heat: 0, img: "images/broths/style-s4.webp" },
       { id: "S5", dish: "xiangguo", name: "Spicy Dry Pot", th: "หม้อแห้งหม่าล่า", heat: 3, img: "images/broths/style-s5.webp" },
     ],
@@ -146,7 +146,7 @@ window.MAHA_MENU = {
       items: [
         {
           id: "mala-xiangguo", name: "Mala Xiang Guo", th: "หม่าล่าเซียงกัว", my: "မာလာရှမ်းကော",
-          desc: { en: "Dry-tossed mala pot. Choose your meat and spicy level.", th: "หม่าล่าผัดแห้ง เลือกเนื้อสัตว์และระดับความเผ็ด", my: "နှစ်သက်ရာ အသား နှင့် Spicy Level ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
+          desc: { en: "Dry-tossed mala pot. Choose your meat, spicy level and mala level.", th: "หม่าล่าผัดแห้ง เลือกเนื้อสัตว์ ระดับความเผ็ด และระดับหม่าล่า", my: "နှစ်သက်ရာ အသား၊ Spicy Level နှင့် Mala Level ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
           img: "images/dishes/dish-xiangguo.webp", price: 199, spicy: true,
           meats: [
             { id: "chicken", name: "Chicken", th: "ไก่", my: "ကြက်သား", price: 199 },
@@ -165,10 +165,10 @@ window.MAHA_MENU = {
           ],
           // ⚠️ ပုံတွေက ယာယီတွဲထားတာပါ — Soup အလိုက် ပုံအမှန်ရရင် images/broths/ ထဲထည့်ပြီး img ကိုပြောင်းပါ
           soups: [
-            { id: "mala", name: "Mala Soup", th: "ซุปหม่าล่า", img: "images/broths/style-s1.webp" },
-            { id: "bone", name: "Bone Soup", th: "ซุปกระดูก", img: "images/broths/style-s3.webp" },
-            { id: "collagen", name: "Collagen Soup", th: "ซุปคอลลาเจน", img: "images/broths/style-s4.webp" },
-            { id: "signature", name: "Signature Soup", th: "ซุปซิกเนเจอร์", img: "images/broths/style-s2.webp" },
+            { id: "S1", name: "Spicy Bone Broth", th: "ซุปกระดูกรสเผ็ด", img: "images/broths/style-s1.webp" },
+            { id: "S2", name: "Rich Tomato Soup", th: "ซุปมะเขือเทศเข้มข้น", img: "images/broths/style-s2.webp" },
+            { id: "S3", name: "Fresh Mushrooms Soup", th: "ซุปเห็ดสด", img: "images/broths/style-s3.webp" },
+            { id: "S4", name: "Pumpkin Soup", th: "ซุปฟักทอง", img: "images/broths/style-s4.webp" },
           ],
         },
         {
@@ -182,16 +182,19 @@ window.MAHA_MENU = {
       id: "dishes",
       title: { en: "Dishes & Appetizers", th: "กับข้าวและของทานเล่น", my: "Dishes & Appetizers" },
       items: [
-        { id: "suancaiyu", name: "Suan Cai Yu", th: "ปลาต้มผักกาดดอง", my: "Suan Cai Dish",
-          desc: { en: "Tender fish slices in tangy pickled-cabbage broth with chilli oil.", th: "ปลาเนื้อนุ่มในน้ำซุปผักกาดดองรสเปรี้ยวเผ็ด", my: "ငါးသားကို မုန်ညင်းချဉ်ဟင်းရည်၊ ငရုတ်ဆီနှင့်" },
+        { id: "suancaiyu", name: "Suan Cai Yu", th: "ปลาต้มผักกาดดองสไตล์เสฉวน", my: "Suan Cai Yu",
+          desc: { en: "Sichuan fish with pickled mustard greens.", th: "ปลาต้มผักกาดดองสไตล์เสฉวน", my: "မုန်ညင်းချဉ်နှင့် စီချွမ်ငါးဟင်း" },
           price: 199, img: "images/dishes/dish-suancaiyu.webp", spicy: true },
-        { id: "sichuan", name: "Sichuan Dish", base: "Sichuan", th: "ผัดเสฉวน", price: 199, spicy: true, art: "sichuan",
+        { id: "sichuan", name: "Sichuan Dish", base: "Sichuan", th: "ผัดเสฉวน",
+          desc: { en: "Choose chicken joint, pork or beef, then choose spicy and mala level.", th: "เลือกข้อไก่ หมู หรือเนื้อวัว แล้วเลือกระดับความเผ็ดและระดับหม่าล่า", my: "ကြက်ဆစ်၊ ဝက်သား၊ အမဲသားထဲကရွေးပြီး Spicy Level နှင့် Mala Level ရွေးပါ။" },
+          price: 199, spicy: true, art: "sichuan",
           meats: [
             { id: "chicken-joint", name: "Chicken Joint", th: "ข้อไก่", my: "ကြက်ဆစ်", price: 199 },
             { id: "pork", name: "Pork", th: "หมู", my: "ဝက်သား", price: 199 },
             { id: "beef", name: "Beef", th: "เนื้อวัว", my: "အမဲသား", price: 199 },
           ] },
         { id: "fried-chicken", name: "Sichuan-style Crispy Fried Chicken", th: "ไก่ทอดกรอบสไตล์เสฉวน", price: 89, img: "images/snacks/snack-chicken.webp" },
+        { id: "sesame-balls", name: "Fried Sesame Balls with Red Bean Filling", th: "ขนมงาทอดไส้ถั่วแดง", my: "နှမ်းလုံးကြော် ပဲနီအနှစ်", price: 89, img: "images/snacks/snack-sesame.webp" },
         { id: "rice-cake", name: "Japanese Fried Sweet Rice Cake", th: "โมจิทอดหวานญี่ปุ่น", price: 89, img: "images/snacks/snack-mochi.webp" },
         { id: "doughnuts", name: "Giant Crispy Doughnuts", th: "โดนัทกรอบยักษ์", price: 89, img: "images/snacks/snack-doughnut.webp" },
         { id: "rice", name: "Steamed Rice", th: "ข้าวสวย", price: 25, art: "rice" },
