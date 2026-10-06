@@ -94,6 +94,7 @@ body.kitchen-mode .kitchen-board .order footer .grow { min-height: 44px; }
 .chip.delivery { background: #e6f0ff; color: #1d4ea8; }
 .chip.pickup { background: #f2e8ff; color: #6531a8; }
 .chip.dinein { background: var(--green); color: #fff; }
+.chip.src-facebook { background: #e8f1ff; color: #1861b9; }
 .who strong { font-size: 15px; }
 .who .tel { margin-left: 8px; font-weight: 600; color: var(--green); }
 .who .addr { font-size: 13.5px; color: var(--muted); margin-top: 2px; }

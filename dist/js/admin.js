@@ -50,6 +50,8 @@
   const t = window.makeT(() => state.lang);
   const ACTIVE = ["new", "preparing", "ready", "out_for_delivery"];
   const NEXT = { new: ["preparing", "a_accept"], preparing: ["ready", "a_ready"], ready: ["completed", "a_complete"], out_for_delivery: ["completed", "a_complete"] };
+  const isFacebookOrder = (o) => (o.source || "online") === "online";
+  const facebookNameRe = /^(online customer|guest|facebook customer)$/i;
 
   function updateDefaultLoginNote() {
     const emailInput = $("#loginForm input[name=email]");
@@ -119,7 +121,7 @@
   // ---------- data ----------
   async function load() {
     try {
-      const rows = (await api.listOrders(rangeStart())).filter((o) => (o.source || "online") === "online");
+      const rows = (await api.listOrders(rangeStart())).filter(isFacebookOrder);
       const fresh = rows.filter((o) => o.status === "new" && state.known && !state.known.has(o.id));
       state.known = new Set(rows.map((o) => o.id));
       state.payState = new Map(rows.map((o) => [o.id, o.payment_status || "unpaid"]));
@@ -223,7 +225,7 @@
     if (!board) return;
     const rows = state.filter === "all" || !state.filter ? list : list.filter((o) => o.status === state.filter);
     board.className = "board list";
-    board.innerHTML = rows.length ? rows.map((o) => `<article class="order st-${o.status} ${o.status === "ready" ? "late" : ""}"><header><div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div><time>${clock(o.created_at)}</time></header><div class="who"><strong>${esc(o.customer_name || "Guest")}</strong>${o.table_no ? `<span>Table ${esc(o.table_no)}</span>` : ""}</div><div class="ototal"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>${o.status === "ready" ? `<p class="onote">✅ Ready for pickup / delivery</p>` : ""}</article>`).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${readyText}</p></div>`;
+    board.innerHTML = rows.length ? rows.map((o) => `<article class="order st-${o.status} ${o.status === "ready" ? "late" : ""}"><header><div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div><time>${clock(o.created_at)}</time></header><div class="meta">${sourceChip(o)}${typeChip(o)}</div><div class="who"><strong>${esc(customerName(o))}</strong>${o.table_no ? `<span>Table ${esc(o.table_no)}</span>` : ""}</div><div class="ototal"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>${o.status === "ready" ? `<p class="onote">✅ Ready for pickup / delivery</p>` : ""}</article>`).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${readyText}</p></div>`;
   }
 
   function renderKitchenView() {
@@ -291,6 +293,13 @@
     if (o.order_type === "pickup") return `<span class="chip pickup">${t("pickup")}${o.pickup_time ? " · " + esc(o.pickup_time === "ASAP" ? t("asap") : o.pickup_time) : ""}</span>`;
     return `<span class="chip delivery">${t("delivery")}</span>`;
   }
+  function sourceChip(o) {
+    return isFacebookOrder(o) ? `<span class="chip src-facebook">${t("sourceFacebook")}</span>` : `<span class="chip src-pos">${t("sourcePos")}</span>`;
+  }
+  function customerName(o) {
+    const name = String(o.customer_name || "").trim();
+    return !name || facebookNameRe.test(name) ? t("facebookCustomer") : name;
+  }
 
   const CLIP = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5Z"/></svg>';
 
@@ -303,7 +312,7 @@
     const dlg = $("#slipDialog");
     $("#slipTitle").textContent = `${t("slipTitle")} · ${o.code}`;
     $("#slipBody").innerHTML = `<div class="slip-amount"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>
-      <p class="slip-who">${esc(o.customer_name || "")} ${o.phone ? "· " + esc(o.phone) : ""} · ${clock(o.created_at)}</p>
+      <p class="slip-who">${esc(customerName(o))} ${o.phone ? "· " + esc(o.phone) : ""} · ${clock(o.created_at)}</p>
       <div class="slip-img" id="slipImg"><p class="pos-empty">…</p></div>
       <p class="hint" style="margin-top:10px">${t("slipCheck")}</p>`;
     renderSlipFoot(o);
@@ -332,9 +341,9 @@
         <div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div>
         <time title="${new Date(o.created_at).toLocaleString()}">${clock(o.created_at)} · ${since(o.created_at)}</time>
       </header>
-      <div class="meta">${typeChip(o)}</div>
+      <div class="meta">${sourceChip(o)}${typeChip(o)}</div>
       <div class="who">
-        <strong>${esc(o.customer_name)}</strong>
+        <strong>${esc(customerName(o))}</strong>
         ${o.phone ? `<a href="tel:${esc(o.phone.replace(/[^\d+]/g, ""))}" class="tel">${esc(o.phone)}</a>` : ""}
         ${o.address ? `<p class="addr">${esc(o.address)} ${map ? `<a href="${esc(map)}" target="_blank" rel="noopener">Map ↗</a>` : ""}</p>` : ""}
       </div>
@@ -385,9 +394,9 @@
       <h2>MAHA DUCK</h2><p class="c">THE MASTER OF MALA<br/>${esc(CFG.location)}${CFG.phone ? "<br/>" + esc(CFG.phone) : ""}</p>
       <hr/>
       <p class="xl">${typeLine}</p>
-      <p class="big">${esc(o.code)}${o.source === "pos" ? " · POS" : ""}</p>
+      <p class="big">${esc(o.code)}${isFacebookOrder(o) ? " · FACEBOOK" : o.source === "pos" ? " · POS" : ""}</p>
       <p>${new Date(o.created_at).toLocaleString()}</p>
-      ${o.customer_name ? `<p>${esc(o.customer_name)} ${esc(o.phone || "")}</p>` : ""}
+      <p>${esc(customerName(o))} ${esc(o.phone || "")}</p>
       ${o.address ? `<p>${esc(o.address)}</p>` : ""}
       <hr/>
       ${(o.items || []).map((i) => `<div class="row item"><span>${i.qty} × ${esc(i.name)}</span><span>${money(i.line_total)}</span></div>${(i.details || []).map((d) => `<div class="det">${esc(d)}</div>`).join("")}`).join("")}

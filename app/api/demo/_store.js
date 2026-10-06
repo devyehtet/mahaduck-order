@@ -122,7 +122,7 @@ export function normalizeOrder(input, staff = false) {
   return {
     order_type: type,
     table_no: type === "dinein" ? text(input.table_no, 8) : null,
-    customer_name: text(input.customer_name, 60) || (staff ? "Walk-in" : "Guest"),
+    customer_name: text(input.customer_name, 60) || (staff ? "Walk-in" : "Facebook Customer"),
     phone: text(input.phone, 20),
     address: type === "delivery" ? text(input.address, 300) : null,
     map_link: type === "delivery" ? safeMapLink(input.map_link) : null,

@@ -79,9 +79,10 @@
 
   function localCreateOrder(order, staff = false) {
     for (let attempt = 0; attempt < 4; attempt++) {
+      const customerName = String(order.customer_name || "").trim() || (staff ? "Walk-in" : "Facebook Customer");
       const row = staff
-        ? { status: "preparing", payment_status: "unpaid", ...order, source: "pos", code: makeCode() }
-        : { ...order, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
+        ? { status: "preparing", payment_status: "unpaid", ...order, customer_name: customerName, source: "pos", code: makeCode() }
+        : { ...order, customer_name: customerName, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
       row.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
       row.created_at = new Date().toISOString();
       const all = store.get(DEMO_ORDERS, []);
@@ -179,9 +180,10 @@
         return demo("/orders", { method: "POST", body: { order, staff } }, () => localCreateOrder(order, staff));
       }
       for (let attempt = 0; attempt < 4; attempt++) {
+        const customerName = String(order.customer_name || "").trim() || (staff ? "Walk-in" : "Facebook Customer");
         const row = staff
-          ? { status: "preparing", payment_status: "unpaid", ...order, source: "pos", code: makeCode() }
-          : { ...order, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
+          ? { status: "preparing", payment_status: "unpaid", ...order, customer_name: customerName, source: "pos", code: makeCode() }
+          : { ...order, customer_name: customerName, source: "online", payment_status: "unpaid", code: makeCode(), status: "new" };
         try {
           await rest("/rest/v1/orders", { method: "POST", body: row, prefer: "return=minimal", token: staff ? await token() : undefined });
           row.created_at = new Date().toISOString();

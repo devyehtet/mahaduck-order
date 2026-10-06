@@ -869,7 +869,7 @@
     const order = {
       order_type: orderType,
       table_no: null,
-      customer_name: c.name || "Online Customer",
+      customer_name: c.name || "Facebook Customer",
       phone: null,
       address: null,
       map_link: null,
