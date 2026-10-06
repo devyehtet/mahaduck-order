@@ -19,6 +19,8 @@ window.MAHA_CONFIG = {
   supabaseAnonKey: "",
   staffLogin: {
     email: "info@yehtet.com",
+    username: "staff",
+    authEmail: "staff@mahaduck.local",
   },
 
   // ---- Ordering ----

@@ -9,7 +9,8 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const money = (n) => CFG.currency + Number(n || 0).toLocaleString("en-US");
-  const defaultStaffEmail = String((CFG.staffLogin && CFG.staffLogin.email) || "info@yehtet.com").trim();
+  const staffLogin = CFG.staffLogin || {};
+  const defaultStaffLogin = String(staffLogin.username || staffLogin.email || "info@yehtet.com").trim();
   function safeMapLink(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -52,11 +53,11 @@
 
   function updateDefaultLoginNote() {
     const emailInput = $("#loginForm input[name=email]");
-    if (emailInput && defaultStaffEmail && !emailInput.value) emailInput.value = defaultStaffEmail;
+    if (emailInput && defaultStaffLogin && !emailInput.value) emailInput.value = defaultStaffLogin;
     const note = $("#defaultLoginNote");
     if (!note) return;
-    note.hidden = !defaultStaffEmail;
-    note.textContent = defaultStaffEmail ? t("defaultLoginNote").replace("{email}", defaultStaffEmail) : "";
+    note.hidden = !defaultStaffLogin;
+    note.textContent = defaultStaffLogin ? t("defaultLoginNote").replace("{login}", defaultStaffLogin) : "";
   }
 
   function toast(msg) {

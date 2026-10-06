@@ -160,6 +160,15 @@
     store.set(SESSION, s);
     return s;
   }
+  function loginEmail(identifier) {
+    const input = String(identifier || "").trim();
+    const staff = cfg.staffLogin || {};
+    const username = String(staff.username || "").trim().toLowerCase();
+    if (input && !input.includes("@") && username && input.toLowerCase() === username) {
+      return String(staff.authEmail || staff.email || input).trim();
+    }
+    return input;
+  }
 
   const api = {
     live,
@@ -251,7 +260,7 @@
       return { type: params.get("type") || "", session: s };
     },
     async signIn(email, password) {
-      const s = await rest("/auth/v1/token?grant_type=password", { method: "POST", body: { email, password } });
+      const s = await rest("/auth/v1/token?grant_type=password", { method: "POST", body: { email: loginEmail(email), password } });
       return persistSession(s);
     },
     async updatePassword(password) {
