@@ -24,7 +24,7 @@ const scripts = {
   ],
 };
 
-const legacyAssetVersion = "2026-10-06-logo";
+const legacyAssetVersion = "2026-10-06-spice";
 
 function scriptUrl(src) {
   if (!src.startsWith("/legacy/")) return src;

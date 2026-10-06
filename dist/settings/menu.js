@@ -118,11 +118,11 @@ window.MAHA_MENU = {
 
   // Spicy Level 1–5 (Level 0 = မစပ် ကို website က အလိုအလျောက်ထည့်ပေးတယ်)
   spicy: [
-    { level: 1, name: "Mild", th: "เผ็ดน้อย", my: "နည်းနည်းစပ်", sub: "A little kick!", img: "images/mascot/duck-1.webp" },
-    { level: 2, name: "Medium", th: "เผ็ดกลาง", my: "အလယ်အလတ်", sub: "Getting spicy!", img: "images/mascot/duck-2.webp" },
-    { level: 3, name: "Hot", th: "เผ็ด", my: "စပ်", sub: "Hotter!", img: "images/mascot/duck-3.webp" },
-    { level: 4, name: "Very hot", th: "เผ็ดมาก", my: "အရမ်းစပ်", sub: "Bring the heat!", img: "images/mascot/duck-4.webp" },
-    { level: 5, name: "Extra hot", th: "เผ็ดสุด", my: "အစပ်ဆုံး", sub: "Fire!", img: "images/mascot/duck-5.webp" },
+    { level: 1, name: "Mild", th: "เผ็ดน้อย", my: "နည်းနည်းစပ်", sub: "A little kick!", img: "images/spice/level-1.webp" },
+    { level: 2, name: "Medium", th: "เผ็ดกลาง", my: "အလယ်အလတ်", sub: "Getting spicy!", img: "images/spice/level-2.webp" },
+    { level: 3, name: "Hot", th: "เผ็ด", my: "စပ်", sub: "Hotter!", img: "images/spice/level-3.webp" },
+    { level: 4, name: "Very hot", th: "เผ็ดมาก", my: "အရမ်းစပ်", sub: "Bring the heat!", img: "images/spice/level-4.webp" },
+    { level: 5, name: "Extra hot", th: "เผ็ดสุด", my: "အစပ်ဆုံး", sub: "Fire!", img: "images/spice/level-5.webp" },
   ],
 
   // Ready-made dishes
