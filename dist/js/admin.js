@@ -428,7 +428,7 @@
     for (let i = 1; i <= n; i++) {
       const card = document.createElement("div");
       card.className = "qr-card";
-      card.innerHTML = `<div class="qr-head"><img src="images/brand/logo-mark.png" alt="" /><strong>MAHA DUCK</strong></div><div class="qr"></div><p class="qr-t">TABLE <b>${i}</b></p><p class="qr-s">Scan to order · สแกนเพื่อสั่ง · Scan ဖတ်ပြီးမှာပါ</p>`;
+      card.innerHTML = `<div class="qr-head"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /><strong>MAHA DUCK</strong></div><div class="qr"></div><p class="qr-t">TABLE <b>${i}</b></p><p class="qr-s">Scan to order · สแกนเพื่อสั่ง · Scan ဖတ်ပြီးမှာပါ</p>`;
       grid.appendChild(card);
       const qr = window.qrcode(0, "M");
       qr.addData(menuUrl(i));

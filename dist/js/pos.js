@@ -37,7 +37,7 @@
     } else {
       const sec = MENU.sections.find((s) => s.id === sale.cat);
       tiles = sec.items.map((it) => `<button type="button" class="pos-tile" data-pitem="${it.id}" ${it.price == null ? "disabled" : ""}>
-        ${it.img ? `<img src="${it.img}" alt="" />` : `<span class="pos-ph"><img src="images/brand/logo-mark.png" alt="" /></span>`}
+        ${it.img ? `<img src="${it.img}" alt="" />` : `<span class="pos-ph"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /></span>`}
         <strong>${esc(it.name)}</strong><small>${esc(it.th || "")}</small><b>${it.price == null ? "—" : it.set && SET ? SET.sizes.map((z) => `${z.id} ${money(z.price)}`).join(" · ") : it.meats ? [...new Set(it.meats.map((m) => m.price))].map(money).join(" / ") : money(it.price)}</b></button>`);
     }
     $("#posGrid").innerHTML = tiles.join("");

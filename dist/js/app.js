@@ -215,7 +215,7 @@
       return `<div class="card-media ${plate ? "plate" : ""}"><img src="${it.img}" alt="${esc(it.name)}" loading="lazy" /></div>`;
     }
     const green = it.art === "rice";
-    return `<div class="card-media art ${green ? "green" : ""}"><div><img src="images/brand/logo-mark.png" alt="" style="margin:0 auto" /><span>${esc(it.name)}</span></div></div>`;
+    return `<div class="card-media art ${green ? "green" : ""}"><div><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" style="margin:0 auto" /><span>${esc(it.name)}</span></div></div>`;
   }
 
   function inCartQty(id) {
@@ -656,7 +656,7 @@
   }
 
   function lineImg(l) {
-    if (!l.img) return `<img src="images/brand/icon-512.png" alt="" />`;
+    if (!l.img) return `<img src="images/brand/icon-512.png?v=2026-10-06-logo" alt="" />`;
     const plate = /dish-|style-/.test(l.img);
     return `<img class="${plate ? "plate" : ""}" src="${l.img}" alt="" />`;
   }
