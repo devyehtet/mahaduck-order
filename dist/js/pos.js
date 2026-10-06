@@ -19,7 +19,10 @@
   const SET = MENU.malaSet || null;
   const BOWL_ON = Boolean(MENU.bowl && MENU.bowl.enabled !== false);
   const setItem = {};
-  if (SET) SET.groups.forEach((g) => g.items.forEach((i) => (setItem[i.id] = i)));
+  const setItemGroup = {};
+  if (SET) SET.groups.forEach((g) => g.items.forEach((i) => { setItem[i.id] = i; setItemGroup[i.id] = g.id; }));
+  const setPickKind = (id) => (["veg", "tofu"].includes(setItemGroup[id]) ? "veg" : "meat");
+  const setQuota = (z, kind) => z[`${kind}Pick`] || z.pick;
 
   const sale = { lines: [], type: "dinein", table: "", name: "", cat: BOWL_ON ? "bowl" : MENU.sections[0].id };
   let dlg = null; // current dialog state
@@ -119,31 +122,67 @@
   const ADDONS_ON = Boolean(SET && SET.addOns !== false);
   const canAddOn = (id) => ADDONS_ON && setItem[id] && typeof setItem[id].price === "number";
   const addonTotal = () => (dlg.addons || []).reduce((n, id) => n + (setItem[id].price || 0), 0);
+  const setPickTotal = () => (dlg.meatPicks || []).length + (dlg.vegPicks || []).length;
+  const setLeft = (z) => Math.max(0, setQuota(z, "meat") - dlg.meatPicks.length) + Math.max(0, setQuota(z, "veg") - dlg.vegPicks.length);
+  function syncSetBuckets() {
+    const seen = new Set();
+    const meat = [];
+    const veg = [];
+    [...(dlg.meatPicks || []), ...(dlg.vegPicks || []), ...(dlg.picks || [])].forEach((id) => {
+      if (!setItem[id] || seen.has(id)) return;
+      seen.add(id);
+      (setPickKind(id) === "veg" ? veg : meat).push(id);
+    });
+    dlg.meatPicks = meat;
+    dlg.vegPicks = veg;
+    dlg.picks = [...meat, ...veg];
+  }
   function normalizeSet(z) {
-    dlg.addons = (dlg.addons || []).filter((id) => canAddOn(id) && !dlg.picks.includes(id));
-    if (dlg.picks.length > z.pick) dlg.picks.length = z.pick;
-    while (dlg.picks.length < z.pick && dlg.addons.length) {
-      const best = dlg.addons.reduce((x, y) => (setItem[y].price > setItem[x].price ? y : x));
-      dlg.addons.splice(dlg.addons.indexOf(best), 1); dlg.picks.push(best);
-    }
+    syncSetBuckets();
+    const meatQuota = setQuota(z, "meat");
+    const vegQuota = setQuota(z, "veg");
+    if (dlg.meatPicks.length > meatQuota) dlg.meatPicks.length = meatQuota;
+    if (dlg.vegPicks.length > vegQuota) dlg.vegPicks.length = vegQuota;
+    const picked = new Set([...dlg.meatPicks, ...dlg.vegPicks]);
+    dlg.addons = (dlg.addons || []).filter((id) => canAddOn(id) && !picked.has(id));
+    const fillFreeSlots = (kind, bucket, quota) => {
+      while (bucket.length < quota) {
+        const candidates = dlg.addons.filter((id) => setPickKind(id) === kind);
+        if (!candidates.length) break;
+        const best = candidates.reduce((x, y) => (setItem[y].price > setItem[x].price ? y : x));
+        dlg.addons.splice(dlg.addons.indexOf(best), 1);
+        bucket.push(best);
+      }
+    };
+    fillFreeSlots("meat", dlg.meatPicks, meatQuota);
+    fillFreeSlots("veg", dlg.vegPicks, vegQuota);
+    dlg.picks = [...dlg.meatPicks, ...dlg.vegPicks];
   }
   function setDialog() {
     const z = SET.sizes.find((x) => x.id === dlg.size);
     normalizeSet(z);
-    const left = z.pick - dlg.picks.length;
+    const meatQuota = setQuota(z, "meat");
+    const vegQuota = setQuota(z, "veg");
+    const meatLeft = meatQuota - dlg.meatPicks.length;
+    const vegLeft = vegQuota - dlg.vegPicks.length;
+    const left = setLeft(z);
     const total = z.price + addonTotal();
     const chip = (i) => {
-      const on = dlg.picks.includes(i.id), add = dlg.addons.includes(i.id);
+      const kind = setPickKind(i.id);
+      const bucket = kind === "veg" ? dlg.vegPicks : dlg.meatPicks;
+      const kindLeft = kind === "veg" ? vegLeft : meatLeft;
+      const on = bucket.includes(i.id), add = dlg.addons.includes(i.id);
       const offer = !on && !add && !left && canAddOn(i.id);
-      return `<button type="button" class="${add ? "addon" : offer ? "offer" : ""}" aria-checked="${on}" data-dpick="${i.id}" ${!on && !add && !left && !offer ? "disabled" : ""}>${esc(i.name)}${add || offer ? ` <small>+${money(i.price)}</small>` : ""}</button>`;
+      return `<button type="button" class="${add ? "addon" : offer ? "offer" : ""}" aria-checked="${on}" data-dpick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>${esc(i.name)}${add || offer ? ` <small>+${money(i.price)}</small>` : ""}</button>`;
     };
-    openDlg(`${items[SET.itemId].name} · ${dlg.picks.length}/${z.pick}${dlg.addons.length ? ` + ${t("addOn")} ${dlg.addons.length}` : ""}`, `
-      ${chips("dsize", SET.sizes.map((x) => [x.id, `${x.name} ${money(x.price)} · ${x.pick}`]), dlg.size)}
+    openDlg(`${items[SET.itemId].name} · ${setPickTotal()}/${z.pick * 2}${dlg.addons.length ? ` + ${t("addOn")} ${dlg.addons.length}` : ""}`, `
+      ${chips("dsize", SET.sizes.map((x) => [x.id, `${x.name} ${money(x.price)} · ${x.pick}+${x.pick}`]), dlg.size)}
+      <p class="hint" style="margin:12px 0 0"><b>${t("meatShort")} ${dlg.meatPicks.length}/${meatQuota} · ${t("vegShort")} ${dlg.vegPicks.length}/${vegQuota}</b></p>
       ${!left && ADDONS_ON ? `<p class="hint" style="margin:12px 0 0">${t("addOnHint")}</p>` : ""}
       ${SET.groups.map((g) => `<h3 class="step-title pos-grp">${esc(g.name)} <small>${esc(g.th)}</small></h3>
         <div class="pos-chips">${g.items.map(chip).join("")}</div>`).join("")}
       <h3 class="step-title">${t("chooseTaste")}</h3>${chips("dtaste", SET.tastes.map((x) => [x.id, `${x.id} ${x.name}`]), dlg.taste)}
-      ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}` : ""}
+      ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}` : ""}
       <label class="field" style="margin-top:14px"><span>${t("noteLabel")}</span><input id="dNote" maxlength="120" value="${esc(dlg.note || "")}" /></label>`,
       `<div class="pos-dlg-price">${money(total)}</div><button type="button" class="btn btn-red btn-grow" id="dlgAdd" ${left ? "disabled" : ""}>${left ? t("pickMore").replace("{n}", left) : t("addToOrder")}</button>`);
   }
@@ -152,16 +191,16 @@
     const z = SET.sizes.find((x) => x.id === dlg.size);
     const ta = SET.tastes.find((x) => x.id === dlg.taste);
     const sp = MENU.spicy.find((s) => s.level === dlg.spicy);
-    const details = [dlg.picks.map((id) => setItem[id].name).join(", ")];
+    const details = [`Meat: ${dlg.meatPicks.map((id) => setItem[id].name).join(", ")}`, `Vegetables: ${dlg.vegPicks.map((id) => setItem[id].name).join(", ")}`];
     if (dlg.addons.length) details.push("Add-on: " + dlg.addons.map((id) => setItem[id].name).join(", "));
     details.push(`Taste ${ta.id}: ${ta.name}`);
-    if (SET.askSpicy) details.push(`Spicy ${dlg.spicy} (${sp ? sp.name : "not spicy"})`);
+    if (SET.askSpicy) details.push(`Spicy ${dlg.spicy} (${sp ? sp.name : "not spicy"}) · Mala ${dlg.mala}`);
     if (dlg.note) details.push(`“${dlg.note}”`);
     addLine({ key: "set|" + z.id + "|" + details.join("|"), name: `${it.name} · ${z.name}`, unit: z.price + addonTotal(), qty: 1, details });
     closeDlg();
   }
 
-  // Item with options (meat / soup / spicy level)
+  // Item with options (meat / soup / spicy and mala level)
   const meatOf = (it) => (it.meats ? it.meats.find((m) => m.id === dlg.meat) || it.meats[0] : null);
   function itemDialog() {
     const it = items[dlg.id];
@@ -170,7 +209,7 @@
     const parts = [];
     if (it.meats) parts.push(`<h3 class="step-title">${t("chooseMeat")}</h3>${chips("dmeat", it.meats.map((m) => [m.id, `${m.name} ${money(m.price)}`]), meat.id)}`);
     if (it.soups) parts.push(`<h3 class="step-title">${t("chooseSoup")}</h3>${chips("dsoup", it.soups.map((x) => [x.id, x.name]), dlg.soup)}`);
-    if (it.spicy) parts.push(`<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}`);
+    if (it.spicy) parts.push(`<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}`);
     openDlg(it.name, parts.join("").replace('class="step-title"', 'class="step-title" style="margin-top:0"') +
       `<label class="field" style="margin-top:14px"><span>${t("noteLabel")}</span><input id="dNote" maxlength="120" value="${esc(dlg.note || "")}" /></label>`,
       `<div class="pos-dlg-price">${money(unit)}</div><button type="button" class="btn btn-red btn-grow" id="dlgAdd">${t("addToOrder")}</button>`);
@@ -181,7 +220,7 @@
     const sp = MENU.spicy.find((s) => s.level === dlg.spicy);
     const details = [];
     if (it.soups) details.push(`Soup: ${(it.soups.find((x) => x.id === dlg.soup) || it.soups[0]).name}`);
-    if (it.spicy) details.push(`Spicy ${dlg.spicy}${sp ? " (" + sp.name + ")" : " (not spicy)"}`);
+    if (it.spicy) details.push(`Spicy ${dlg.spicy}${sp ? " (" + sp.name + ")" : " (not spicy)"} · Mala ${dlg.mala}`);
     if (dlg.note) details.push(`“${dlg.note}”`);
     const name = meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name;
     addLine({ key: it.id + "|" + name + "|" + details.join("|"), name, unit: meat ? meat.price : it.price, qty: 1, details });
@@ -263,8 +302,8 @@
     if (d.pbowl) { dlg = { kind: "bowl", dish: d.pbowl, style: styles.find((s) => s.dish === d.pbowl).id, meat: 0, veg: 0, spicy: 2, mala: 2, note: "" }; return bowlDialog(); }
     if (d.pitem) {
       const it = items[d.pitem];
-      if (it.set && SET) { dlg = { kind: "set", size: "S", picks: [], addons: [], taste: 1, spicy: 2, note: "" }; return setDialog(); }
-      if (it.meats || it.soups || it.spicy) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, note: "" }; return itemDialog(); }
+      if (it.set && SET) { dlg = { kind: "set", size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, note: "" }; return setDialog(); }
+      if (it.meats || it.soups || it.spicy) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, note: "" }; return itemDialog(); }
       return addLine({ key: it.id, name: it.name, unit: it.price, qty: 1, details: [] });
     }
     if (d.ptype) { sale.type = d.ptype; return renderTicket(); }
@@ -290,12 +329,15 @@
     if (d.dsize) { keep(); dlg.size = d.dsize; return redraw(); }
     if (d.dpick) {
       keep();
-      const i = dlg.picks.indexOf(d.dpick), j = dlg.addons.indexOf(d.dpick);
-      const quota = SET.sizes.find((x) => x.id === dlg.size).pick;
-      if (i >= 0) dlg.picks.splice(i, 1);
+      const z = SET.sizes.find((x) => x.id === dlg.size);
+      normalizeSet(z);
+      const kind = setPickKind(d.dpick);
+      const bucket = kind === "veg" ? dlg.vegPicks : dlg.meatPicks;
+      const i = bucket.indexOf(d.dpick), j = dlg.addons.indexOf(d.dpick);
+      if (i >= 0) bucket.splice(i, 1);
       else if (j >= 0) dlg.addons.splice(j, 1);
-      else if (dlg.picks.length < quota) dlg.picks.push(d.dpick);
-      else if (canAddOn(d.dpick)) dlg.addons.push(d.dpick);
+      else if (bucket.length < setQuota(z, kind)) bucket.push(d.dpick);
+      else if (!setLeft(z) && canAddOn(d.dpick)) dlg.addons.push(d.dpick);
       return redraw();
     }
     if (d.dmeat) { keep(); dlg.meat = d.dmeat; return redraw(); }

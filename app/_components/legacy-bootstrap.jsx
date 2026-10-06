@@ -24,7 +24,7 @@ const scripts = {
   ],
 };
 
-const legacyAssetVersion = "2026-10-06-spice";
+const legacyAssetVersion = "2026-10-06-menu-levels-2";
 
 function scriptUrl(src) {
   if (!src.startsWith("/legacy/")) return src;

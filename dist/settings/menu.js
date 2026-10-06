@@ -9,7 +9,7 @@ window.MAHA_MENU = {
   malaSet: {
     itemId: "mala-duck",
     addOns: true,    // Set ပြည့်ပြီးရင် တခြားပစ္စည်းကို တစ်မျိုးချင်းဈေး (အောက်က price) နဲ့ Add-on ထပ်ထည့်ခွင့်ပေးမယ်။ false = မပေးဘူး
-    askSpicy: false, // true ပြောင်းရင် ဘဲစပ်မှာလည်း Spicy Level ရွေးခိုင်းမယ်
+    askSpicy: true,  // ဘဲစပ်မှာလည်း Spicy Level + Mala Level ရွေးခိုင်းမယ်
     sizes: [
       { id: "S", name: "Small", th: "เล็ก", my: "အသေး", price: 250, pick: 3 },
       { id: "M", name: "Medium", th: "กลาง", my: "အလတ်", price: 350, pick: 4 },
@@ -156,12 +156,12 @@ window.MAHA_MENU = {
         },
         {
           id: "malatang", name: "Malatang", th: "หม่าล่าทั่ง", my: "မာလာထန်",
-          desc: { en: "Mala soup bowl. Choose your meat, soup and spicy level.", th: "หม่าล่าน้ำซุป เลือกเนื้อสัตว์ น้ำซุป และระดับความเผ็ด", my: "နှစ်သက်ရာ အသား၊ Soup နှင့် Spicy Level ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
+          desc: { en: "Mala soup bowl. Choose your protein, soup, spicy level and mala level.", th: "หม่าล่าน้ำซุป เลือกเนื้อสัตว์ น้ำซุป ระดับความเผ็ด และระดับหม่าล่า", my: "နှစ်သက်ရာ အသား၊ Soup၊ Spicy Level နှင့် Mala Level ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
           img: "images/dishes/dish-malatang.webp", price: 199, spicy: true,
           meats: [
             { id: "chicken", name: "Chicken", th: "ไก่", my: "ကြက်သား", price: 199 },
             { id: "pork", name: "Pork", th: "หมู", my: "ဝက်သား", price: 199 },
-            { id: "beef", name: "Beef", th: "เนื้อวัว", my: "အမဲသား", price: 249 },
+            { id: "seafood", name: "Seafood", th: "ซีฟู้ด", my: "ပင်လယ်စာ", price: 249 },
           ],
           // ⚠️ ပုံတွေက ယာယီတွဲထားတာပါ — Soup အလိုက် ပုံအမှန်ရရင် images/broths/ ထဲထည့်ပြီး img ကိုပြောင်းပါ
           soups: [
@@ -173,7 +173,7 @@ window.MAHA_MENU = {
         },
         {
           id: "mala-duck", name: "Mala Duck", th: "เป็ดหม่าล่า", my: "ဘဲစပ်",
-          desc: { en: "Choose your size, your meats & vegetables (Small 3, Medium 4, Big 5) and your taste.", th: "เลือกขนาด เลือกเนื้อสัตว์และผัก (เล็ก 3 กลาง 4 ใหญ่ 5 อย่าง) และรสชาติ", my: "စားပွဲဆိုဒ်၊ နှစ်သက်ရာ အသား/အသီးအရွက် (အသေး 3၊ အလတ် 4၊ အကြီး 5 မျိုး) နှင့် အရသာ ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
+          desc: { en: "Choose your size, your meats, your vegetables, taste, spicy level and mala level.", th: "เลือกขนาด เนื้อสัตว์ ผัก รสชาติ ระดับความเผ็ด และระดับหม่าล่า", my: "Size၊ အသား၊ အသီးအရွက်၊ အရသာ၊ Spicy Level နှင့် Mala Level ကို ရွေးချယ်ကာ မှာယူနိုင်ပါတယ်။" },
           price: 250, set: true, img: "images/dishes/dish-duck.webp", badge: "signature",
         },
       ],
@@ -187,7 +187,7 @@ window.MAHA_MENU = {
           price: 199, img: "images/dishes/dish-suancaiyu.webp", spicy: true },
         { id: "sichuan", name: "Sichuan Dish", base: "Sichuan", th: "ผัดเสฉวน", price: 199, spicy: true, art: "sichuan",
           meats: [
-            { id: "chicken", name: "Chicken", th: "ไก่", my: "ကြက်သား", price: 199 },
+            { id: "chicken-joint", name: "Chicken Joint", th: "ข้อไก่", my: "ကြက်ဆစ်", price: 199 },
             { id: "pork", name: "Pork", th: "หมู", my: "ဝက်သား", price: 199 },
             { id: "beef", name: "Beef", th: "เนื้อวัว", my: "အမဲသား", price: 199 },
           ] },
