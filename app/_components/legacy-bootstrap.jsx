@@ -24,7 +24,7 @@ const scripts = {
   ],
 };
 
-const legacyAssetVersion = "2026-10-06-facebook-dashboard";
+const legacyAssetVersion = "2026-10-06-ingredient-images";
 
 function scriptUrl(src) {
   if (!src.startsWith("/legacy/")) return src;

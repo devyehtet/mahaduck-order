@@ -197,6 +197,9 @@ body.kitchen-mode .kitchen-board .order footer .grow { min-height: 44px; }
 }
 .pos-type button[aria-checked="true"], .pos-chips button[aria-checked="true"] { border-color: var(--red); background: #fff1ef; color: var(--red-2); }
 .pos-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.pos-chips button.has-img { position: relative; min-height: 64px; padding-left: 68px; text-align: left; }
+.pos-chips button.has-img img { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; object-fit: contain; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.pos-chips button.has-img span { display: block; }
 .pos-fields { display: flex; gap: 6px; }
 .pos-fields input { flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 15px; }
 .pos-fields #posTable { flex: 0 0 90px; }

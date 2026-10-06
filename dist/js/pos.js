@@ -173,7 +173,8 @@
       const kindLeft = kind === "veg" ? vegLeft : meatLeft;
       const on = bucket.includes(i.id), add = dlg.addons.includes(i.id);
       const offer = !on && !add && !left && canAddOn(i.id);
-      return `<button type="button" class="${add ? "addon" : offer ? "offer" : ""}" aria-checked="${on}" data-dpick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>${esc(i.name)}${add || offer ? ` <small>+${money(i.price)}</small>` : ""}</button>`;
+      const photo = i.img ? `<img src="${i.img}" alt="" />` : "";
+      return `<button type="button" class="${i.img ? "has-img" : ""} ${add ? "addon" : offer ? "offer" : ""}" aria-checked="${on}" data-dpick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>${photo}<span>${esc(i.name)}${add || offer ? ` <small>+${money(i.price)}</small>` : ""}</span></button>`;
     };
     openDlg(`${items[SET.itemId].name} · ${setPickTotal()}/${z.pick * 2}${dlg.addons.length ? ` + ${t("addOn")} ${dlg.addons.length}` : ""}`, `
       ${chips("dsize", SET.sizes.map((x) => [x.id, `${x.name} ${money(x.price)} · ${x.pick}+${x.pick}`]), dlg.size)}

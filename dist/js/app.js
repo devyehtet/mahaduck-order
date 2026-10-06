@@ -431,8 +431,9 @@
         const on = bucket.includes(i.id), add = setB.addons.includes(i.id);
         const offer = !on && !add && !left && canAddOn(i.id); // set is full -> this one would be an add-on
         const price = add || offer ? ` · <b class="plus">+${money(i.price)}</b>` : "";
-        return `<button type="button" class="pick ${on ? "on" : ""} ${add ? "addon" : ""} ${offer ? "offer" : ""}" aria-pressed="${on || add}" data-spick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>
-          <strong>${esc(local(i))}</strong><small>${esc(sub(i))}${price}</small></button>`;
+        const photo = i.img ? `<img src="${i.img}" alt="" />` : "";
+        return `<button type="button" class="pick ${i.img ? "with-img" : ""} ${on ? "on" : ""} ${add ? "addon" : ""} ${offer ? "offer" : ""}" aria-pressed="${on || add}" data-spick="${i.id}" ${!on && !add && kindLeft <= 0 && !offer ? "disabled" : ""}>
+          ${photo}<strong>${esc(local(i))}</strong><small>${esc(sub(i))}${price}</small></button>`;
       };
       body.innerHTML = `<div class="pick-bar ${left ? "" : "full"}"><span>${esc(sizeName(z))} · ${money(z.price)}${setB.addons.length ? ` <em>+ ${t("addOn")} ${setB.addons.length} · ${money(extra)}</em>` : ""}</span><b>${setPickTotal()} / ${z.pick * 2}</b></div>
         <p class="hint" style="margin-top:10px"><b>${t("meatShort")} ${setB.meatPicks.length}/${meatQuota} · ${t("vegShort")} ${setB.vegPicks.length}/${vegQuota}</b><br>${left || !ADDONS_ON ? t("pickSetHint").replace(/\{n\}/g, z.pick) : t("addOnHint")}</p>
@@ -552,6 +553,7 @@
       .map((i) => {
         const p = builder.ing[i.id] || 0;
         return `<div class="ing ${p ? "on" : ""}">
+          ${i.img ? `<img class="ing-photo" src="${i.img}" alt="" />` : ""}
           <div class="nm"><strong>${esc(local(i))}</strong><small>${esc(sub(i))} · ${money(price)} / 100 g</small></div>
           <div class="stepper">
             <button type="button" class="minus" data-ing="${i.id}" data-d="-1" aria-label="−100 g">−</button>

@@ -403,6 +403,7 @@ dialog.sheet::backdrop { background: rgba(20, 12, 6, .55); backdrop-filter: blur
   background: var(--paper); border: 1.5px solid var(--line); transition: border-color .15s, background .15s;
 }
 .ing.on { border-color: var(--green); background: #f1f8f2; }
+.ing-photo { flex: none; width: 52px; height: 52px; object-fit: contain; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
 .ing .nm { flex: 1; min-width: 0; }
 .ing .nm strong { display: block; font-size: 14.5px; font-weight: 600; }
 .ing .nm small { color: var(--muted); font-size: 12.5px; }
@@ -629,6 +630,8 @@ textarea { resize: vertical; min-height: 70px; }
 .grp-title small { font-family: var(--font); font-size: 12.5px; font-weight: 400; color: var(--muted); margin-left: 4px; }
 .pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .pick { position: relative; text-align: left; border: 2px solid var(--line); background: var(--paper); border-radius: 14px; padding: 10px 34px 10px 12px; min-height: 58px; display: flex; flex-direction: column; justify-content: center; line-height: 1.25; }
+.pick.with-img { min-height: 76px; padding-left: 82px; }
+.pick img { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 58px; height: 58px; object-fit: contain; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
 .pick strong { font-size: 14px; font-weight: 600; }
 .pick small { font-size: 12px; color: var(--muted); }
 .pick::after { content: ""; position: absolute; right: 10px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; border: 2px solid var(--line); }

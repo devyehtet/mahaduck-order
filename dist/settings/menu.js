@@ -23,13 +23,13 @@ window.MAHA_MENU = {
     // price = menu ပေါ်က တစ်မျိုးချင်းဈေး — Set ပြည့်ပြီးနောက် Add-on ထပ်ထည့်ရင် ဒီဈေးနဲ့ ပေါင်းမယ်
     groups: [
       { id: "duck", name: "Mala Duck", th: "หม่าล่าเป็ด", my: "ဘဲ", items: [
-        { id: "duck-neck", name: "Duck Neck", th: "คอเป็ด", price: 70 },
+        { id: "duck-neck", name: "Duck Neck", th: "คอเป็ด", price: 70, img: "images/ingredients/duck-neck.webp" },
         { id: "duck-head", name: "Duck Head", th: "หัวเป็ด", price: 70 },
-        { id: "duck-wing", name: "Duck Wing", th: "ปีกเป็ด", price: 35 },
-        { id: "duck-feet", name: "Duck Feet", th: "ตีนเป็ด", price: 25 },
+        { id: "duck-wing", name: "Duck Wing", th: "ปีกเป็ด", price: 35, img: "images/ingredients/duck-wing.webp" },
+        { id: "duck-feet", name: "Duck Feet", th: "ตีนเป็ด", price: 25, img: "images/ingredients/duck-feet.webp" },
         { id: "duck-leg", name: "Duck Leg", th: "น่องเป็ด", price: 150 },
         { id: "duck-mushroom", name: "Duck Mushroom", th: "เห็ดเป็ด", price: 40 },
-        { id: "duck-tongue", name: "Duck Tongue", th: "ลิ้นเป็ด", price: 120 },
+        { id: "duck-tongue", name: "Duck Tongue", th: "ลิ้นเป็ด", price: 120, img: "images/ingredients/duck-tongue.webp" },
         { id: "duck-intestine", name: "Duck Intestine", th: "ไส้เป็ด", price: 120 },
       ] },
       { id: "chicken", name: "Mala Chicken", th: "หม่าล่าไก่", my: "ကြက်", items: [
@@ -44,7 +44,7 @@ window.MAHA_MENU = {
         { id: "pig-ear", name: "Pig Ear", th: "หูหมู", price: 120 },
       ] },
       { id: "tofu", name: "Tofu & Mushroom", th: "เต้าหู้และเห็ด", my: "တိုဟူး နှင့် မှို", items: [
-        { id: "enoki", name: "Enoki Mushroom", th: "เห็ดเข็มทอง", price: 60 },
+        { id: "enoki", name: "Enoki Mushroom", th: "เห็ดเข็มทอง", price: 60, img: "images/ingredients/enoki.webp" },
         { id: "wood-ear", name: "Wood Ear Mushroom", th: "เห็ดหูหนู", price: 50 },
         { id: "tofu", name: "Tofu", th: "เต้าหู้", price: 50 },
         { id: "tofu-cubes", name: "Tofu Cubes", th: "เต้าหู้ก้อน", price: 60 },
@@ -54,10 +54,10 @@ window.MAHA_MENU = {
       { id: "others", name: "Others", th: "อื่น ๆ", my: "အခြား", items: [
         { id: "prawn", name: "Prawn", th: "กุ้ง", price: 100 },
         { id: "sausage", name: "Hot Dog Sausage", th: "ไส้กรอก", price: 40 },
-        { id: "quail-eggs", name: "Quail Eggs", th: "ไข่นกกระทา", price: 35 },
+        { id: "quail-eggs", name: "Quail Eggs", th: "ไข่นกกระทา", price: 35, img: "images/ingredients/quail-eggs.webp" },
       ] },
       { id: "veg", name: "Mala Vegetable", th: "หม่าล่าผัก", my: "အသီးအရွက်", items: [
-        { id: "lotus-root", name: "Lotus Root", th: "รากบัว", price: 50 },
+        { id: "lotus-root", name: "Lotus Root", th: "รากบัว", price: 50, img: "images/ingredients/lotus-root.webp" },
         { id: "potato", name: "Potato", th: "มันฝรั่ง", price: 50 },
         { id: "banana-blossom", name: "Banana Blossom", th: "หัวปลี", price: 50 },
         { id: "bamboo-shoots", name: "Bamboo Shoots", th: "หน่อไม้", price: 80 },
@@ -94,14 +94,14 @@ window.MAHA_MENU = {
         { id: "fishball", name: "Fish balls", th: "ลูกชิ้นปลา" },
         { id: "porkball", name: "Pork balls", th: "ลูกชิ้นหมู" },
         { id: "crab", name: "Crab sticks", th: "ปูอัด" },
-        { id: "quail", name: "Quail eggs", th: "ไข่นกกระทา" },
+        { id: "quail", name: "Quail eggs", th: "ไข่นกกระทา", img: "images/ingredients/quail-eggs.webp" },
         { id: "fishtofu", name: "Fish tofu", th: "เต้าหู้ปลา" },
       ],
       veg: [
-        { id: "enoki", name: "Enoki mushroom", th: "เห็ดเข็มทอง" },
+        { id: "enoki", name: "Enoki mushroom", th: "เห็ดเข็มทอง", img: "images/ingredients/enoki.webp" },
         { id: "shiitake", name: "Shiitake", th: "เห็ดหอม" },
         { id: "woodear", name: "Wood ear", th: "เห็ดหูหนู" },
-        { id: "lotus", name: "Lotus root", th: "รากบัว" },
+        { id: "lotus", name: "Lotus root", th: "รากบัว", img: "images/ingredients/lotus-root.webp" },
         { id: "bokchoy", name: "Bok choy", th: "ผักกวางตุ้ง" },
         { id: "napa", name: "Napa cabbage", th: "ผักกาดขาว" },
         { id: "babycorn", name: "Baby corn", th: "ข้าวโพดอ่อน" },
