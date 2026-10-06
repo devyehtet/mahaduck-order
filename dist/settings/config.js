@@ -22,7 +22,7 @@ window.MAHA_CONFIG = {
   },
 
   // ---- Ordering ----
-  orderTypes: ["delivery", "pickup", "dinein"],
+  orderTypes: ["pickup"],
   deliveryFee: null,      // null = အောက်က "delivery" အတိုင်း အကွာအဝေးနဲ့တွက်မယ်။ နံပါတ်ထည့်ရင် (ဥပမာ 40) နေရာတိုင်း ဈေးတစ်ခုတည်း
   // ---- Delivery ခ တွက်နည်း (အကွာအဝေးအလိုက်) ----
   // GrabExpress (Bike) Bangkok ရဲ့ ထုတ်ပြန်ထားတဲ့ နှုန်းအတိုင်း: စ ฿36 + ကီလိုမီတာအလိုက်။

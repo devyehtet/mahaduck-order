@@ -17,6 +17,7 @@ const contentTypes = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 };
+const mutableTypes = new Set([".css", ".html", ".js", ".json"]);
 
 export async function GET(_request, { params }) {
   const { asset = [] } = await params;
@@ -25,10 +26,11 @@ export async function GET(_request, { params }) {
 
   try {
     const data = await readFile(file);
+    const ext = extname(file).toLowerCase();
     return new Response(data, {
       headers: {
-        "Content-Type": contentTypes[extname(file).toLowerCase()] || "application/octet-stream",
-        "Cache-Control": "public, max-age=3600",
+        "Content-Type": contentTypes[ext] || "application/octet-stream",
+        "Cache-Control": mutableTypes.has(ext) ? "public, max-age=0, must-revalidate" : "public, max-age=3600",
         "X-Content-Type-Options": "nosniff",
       },
     });

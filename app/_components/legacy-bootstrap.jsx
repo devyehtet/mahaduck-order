@@ -24,6 +24,13 @@ const scripts = {
   ],
 };
 
+const legacyAssetVersion = "2026-10-06-order-flow";
+
+function scriptUrl(src) {
+  if (!src.startsWith("/legacy/")) return src;
+  return `${src}${src.includes("?") ? "&" : "?"}v=${legacyAssetVersion}`;
+}
+
 function isScriptReady(src) {
   if (src === "/api/runtime-config") return Boolean(window.MAHA_CONFIG);
   if (src === "/legacy/settings/menu.js") return Boolean(window.MAHA_MENU);
@@ -50,7 +57,7 @@ export default function LegacyBootstrap({ page, children }) {
         await new Promise((resolve, reject) => {
           window.__MAHA_LEGACY_SCRIPTS__.add(src);
           const script = document.createElement("script");
-          script.src = src;
+          script.src = scriptUrl(src);
           script.dataset.mahaLegacyScript = src;
           script.onload = () => {
             if (!isScriptReady(src)) {

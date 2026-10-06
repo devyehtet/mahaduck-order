@@ -161,7 +161,9 @@
     bar.hidden = n === 0;
     $("#orderbarCount").textContent = n;
     $("#orderbarTotal").textContent = money(subtotal());
-    typeOptions($("#typeSwitch"));
+    const typeSwitch = $("#typeSwitch");
+    typeSwitch.hidden = (CFG.orderTypes || []).length <= 1;
+    if (!typeSwitch.hidden) typeOptions(typeSwitch);
 
     const notice = $("#shopNotice");
     const s = state.settings;
@@ -702,9 +704,9 @@
             <div class="stepper"><button type="button" data-q="${i}" data-d="-1" aria-label="${t("remove")}">${l.qty === 1 ? '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 12H7L6 9Z"/></svg>' : "−"}</button><output>${l.qty}</output><button type="button" class="plus" data-q="${i}" data-d="1" aria-label="+">+</button></div></div></div>
         </div>`
         )
-        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + totalsHtml;
+        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + totalsHtml + `<p class="form-error" id="formError" role="alert"></p>`;
       const minOk = sub >= (CFG.minOrder || 0);
-      foot.innerHTML = `<button class="btn btn-red btn-grow" type="button" id="toCheckout" ${minOk ? "" : "disabled"}>${minOk ? t("checkout") : `${t("minOrder")} ${money(CFG.minOrder)}`} · ${money(sub + fee)}</button>`;
+      foot.innerHTML = `<button class="btn btn-red btn-grow" type="button" id="placeOrder" ${minOk ? "" : "disabled"}>${minOk ? t("placeOrder") : `${t("minOrder")} ${money(CFG.minOrder)}`} · ${money(sub + fee)}</button>`;
       return;
     }
 
@@ -789,6 +791,7 @@
   }
 
   function validate() {
+    if (state.cartView === "cart") return true;
     const errs = {};
     const c = state.customer;
     if (!c.name) errs.name = t("errName");
@@ -816,25 +819,23 @@
     $("#formError").textContent = "";
     const c = state.customer;
     const sub = subtotal();
-    const q = quote();
-    const fee = q.known ? q.fee : 0;
-    const d = state.type === "delivery" ? state.dest : null;
-    const where = d && !state.destOther ? ` [${d.src === "gps" ? "GPS" : d.label}${q.km != null ? " · ~" + kmText(q.km) : ""}]` : "";
+    const orderType = "pickup";
+    const fee = 0;
     const order = {
-      order_type: state.type,
-      table_no: state.type === "dinein" ? state.table : null,
-      customer_name: c.name,
-      phone: state.type === "dinein" ? c.phone || null : c.phone,
-      address: state.type === "delivery" ? (c.address.slice(0, 250) + where).slice(0, 300) : null,
-      map_link: state.type === "delivery" ? cleanMapLink(c.map) || (d && d.src === "gps" ? `https://www.google.com/maps?q=${d.lat.toFixed(6)},${d.lng.toFixed(6)}` : null) : null,
-      pickup_time: state.type === "pickup" ? (state.pickup === "asap" ? "ASAP" : state.pickup) : null,
-      payment: state.payment,
-      note: ($("#fNote") && $("#fNote").value.trim()) || null,
+      order_type: orderType,
+      table_no: null,
+      customer_name: c.name || "Online Customer",
+      phone: null,
+      address: null,
+      map_link: null,
+      pickup_time: "ASAP",
+      payment: "cash",
+      note: null,
       items: state.cart.map((l) => ({
         name: l.name, th: l.th || "", qty: l.qty, unit_price: l.unitPrice, line_total: l.unitPrice * l.qty, details: optionLines(l, true),
       })),
       subtotal: sub,
-      delivery_fee: state.type === "delivery" && q.known ? fee : null,
+      delivery_fee: null,
       total: sub + fee,
       lang: state.lang,
     };
@@ -842,7 +843,7 @@
       const saved = await api.createOrder(order);
       state.lastOrder = {
         code: saved.code, total: saved.total, created_at: saved.created_at, type: saved.order_type, order_type: saved.order_type, status: "new",
-        payment: saved.payment, payment_status: "unpaid", feeUnknown: saved.order_type === "delivery" && saved.delivery_fee == null,
+        payment: saved.payment, payment_status: "unpaid", feeUnknown: false,
       };
       state.myOrders = [state.lastOrder, ...state.myOrders.filter((o) => o.code !== saved.code)].slice(0, 20);
       S.set("mahaduck-my-orders", state.myOrders);
@@ -857,7 +858,7 @@
       if (/accepting/i.test(e.message || "")) { state.settings.accepting_orders = false; renderHeader(); }
       $("#formError").textContent = /accepting/i.test(e.message || "") ? t("closed") : t("errSend");
       btn.disabled = false;
-      btn.textContent = t("placeOrder");
+      btn.textContent = t("placeOrder") + " · " + money(sub + fee);
     }
   }
 
@@ -949,7 +950,7 @@
     body.innerHTML = `<div class="success"><img src="images/mascot/duck-welcome.webp" alt="" />
       <h3>${t("thanks")}</h3><p style="color:var(--muted)">${t("thanksSub")}</p>
       <div class="code-box">${esc(o.code)}</div>
-      <p><strong>${money(o.total)}</strong> · ${t(o.type)}</p>
+      <p><strong>${money(o.total)}</strong></p>
       <div id="payBox" style="width:100%">${payHtml(o)}</div>
       <div id="trackerBox" style="width:100%">${trackerHtml(o.status, o.order_type || o.type, o.delivery_provider, o.delivery_started_at)}</div>
       ${!api.live ? `<p class="demo-chip">${t("demoNote")}</p>` : ""}</div>`;
