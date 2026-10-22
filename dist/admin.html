@@ -89,6 +89,13 @@
         <section class="stats" id="stats"></section>
 
         <div class="toolbar">
+          <div class="filters" id="sourceFilters" role="tablist" aria-label="Order source"></div>
+          <label class="range" id="tableFilterField" hidden><span data-i18n="table">Table number</span>
+            <select id="tableFilter" aria-label="Table number"></select>
+          </label>
+        </div>
+
+        <div class="toolbar">
           <div class="filters" id="filters" role="tablist"></div>
           <label class="range"><span data-i18n="range">Show</span>
             <select id="rangeSel"><option value="today" data-i18n="rToday">Today</option><option value="7" data-i18n="r7">7 days</option><option value="30" data-i18n="r30">30 days</option></select>
@@ -128,10 +135,12 @@
       <main class="admin-main" id="tablesView" hidden>
         <div class="section-head"><h2 data-i18n="tablesTitle">QR codes for tables</h2><p data-i18n="tablesSub"></p></div>
         <div class="qr-controls">
+          <label class="field qr-url"><span data-i18n="menuUrl">Menu URL</span><input type="url" id="tableMenuUrl" placeholder="https://mahaduck-order.vercel.app/" /><small data-i18n="menuUrlHint">Use your published website URL or the shop's local network address.</small></label>
           <label class="field"><span data-i18n="howMany">Number of tables</span><input type="number" id="tableCount" min="1" max="60" value="10" /></label>
           <button class="btn btn-green" type="button" id="genQR" data-i18n="generate">Generate</button>
           <button class="btn btn-line" type="button" id="printQR" data-i18n="printAll">Print all</button>
         </div>
+        <p class="form-error" id="tableQrError" role="alert"></p>
         <div class="qr-grid" id="qrGrid"></div>
       </main>
     </div>

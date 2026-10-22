@@ -440,6 +440,12 @@ dialog.sheet::backdrop { background: rgba(20, 12, 6, .55); backdrop-filter: blur
 }
 .mala-pick button[aria-checked="true"] { background: #d48a1f; color: #fff; border-color: #d48a1f; }
 .mala-pick button.lit { background: #fbe7c4; border-color: #f0c77e; }
+.salt-pick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.salt-pick button {
+  height: 48px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper);
+  font-weight: 800; font-size: 15px; color: var(--green);
+}
+.salt-pick button[aria-checked="true"] { background: var(--green); color: #fff; border-color: var(--green); box-shadow: 0 0 0 3px rgba(20, 83, 47, .16); }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field > span { font-size: 13.5px; font-weight: 600; }
 .field input, .field textarea, .field select {
@@ -451,6 +457,8 @@ dialog.sheet::backdrop { background: rgba(20, 12, 6, .55); backdrop-filter: blur
 textarea { resize: vertical; min-height: 70px; }
 
 /* Cart */
+.cart-table { margin: 14px 0; padding: 10px 12px; background: var(--green); color: #fff; border-radius: 8px; text-align: center; }
+.cart-table strong { margin-left: 6px; font-size: 20px; }
 .cart-type { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
 .cart-type .type-opt { background: var(--paper); color: var(--ink); border-color: var(--line); }
 .cart-type .type-opt small { color: var(--muted); }

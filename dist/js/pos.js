@@ -84,6 +84,9 @@
   const closeDlg = () => { dlg = null; $("#posDialog").close(); };
   const chips = (name, list, cur) => `<div class="pos-chips" role="radiogroup">${list.map(([v, l]) => `<button type="button" role="radio" aria-checked="${String(cur) === String(v)}" data-${name}="${v}">${esc(l)}</button>`).join("")}</div>`;
   const spiceList = (withNone) => [...(withNone ? [[0, "0 Not spicy"]] : []), ...MENU.spicy.map((s) => [s.level, `${s.level} ${s.name}`])];
+  const SALT_LEVELS = [25, 50, 75, 100];
+  const saltValue = (n) => (SALT_LEVELS.includes(Number(n)) ? Number(n) : 100);
+  const saltList = () => SALT_LEVELS.map((n) => [n, `${n}%`]);
 
   // Weighed bowl
   function bowlDialog() {
@@ -98,6 +101,7 @@
       </div>
       <h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(false), dlg.spicy)}
       <h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}
+      <h3 class="step-title">${t("saltLevel")}</h3>${chips("dsalt", saltList(), saltValue(dlg.salt))}
       <label class="field" style="margin-top:14px"><span>${t("noteLabel")}</span><input id="dNote" maxlength="120" value="${esc(dlg.note || "")}" /></label>`,
       `<div class="pos-dlg-price" id="bowlPrice">${money(price)}</div><button type="button" class="btn btn-red btn-grow" id="dlgAdd" ${price ? "" : "disabled"}>${t("addToOrder")}</button>`);
     const upd = () => {
@@ -112,7 +116,7 @@
     const st = styleById[dlg.style];
     const price = Math.round((dlg.meat * rate.meat + dlg.veg * rate.veg) / 100);
     const sp = MENU.spicy.find((s) => s.level === dlg.spicy);
-    const details = [`${st.id} ${st.name}`, `Meat ${dlg.meat}g · Veg ${dlg.veg}g`, `Spicy ${dlg.spicy} (${sp ? sp.name : "-"}) · Mala ${dlg.mala}`];
+    const details = [`${st.id} ${st.name}`, `Meat ${dlg.meat}g · Veg ${dlg.veg}g`, `Spicy ${dlg.spicy} (${sp ? sp.name : "-"}) · Mala ${dlg.mala}`, `Salt ${saltValue(dlg.salt)}%`];
     if (dlg.note) details.push(`“${dlg.note}”`);
     addLine({ key: "bowl" + Date.now(), name: d.name, unit: price, qty: 1, details });
     closeDlg();
@@ -183,7 +187,7 @@
       ${SET.groups.map((g) => `<h3 class="step-title pos-grp">${esc(g.name)} <small>${esc(g.th)}</small></h3>
         <div class="pos-chips">${g.items.map(chip).join("")}</div>`).join("")}
       <h3 class="step-title">${t("chooseTaste")}</h3>${chips("dtaste", SET.tastes.map((x) => [x.id, `${x.id} ${x.name}`]), dlg.taste)}
-      ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}` : ""}
+      ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}<h3 class="step-title">${t("saltLevel")}</h3>${chips("dsalt", saltList(), saltValue(dlg.salt))}` : ""}
       <label class="field" style="margin-top:14px"><span>${t("noteLabel")}</span><input id="dNote" maxlength="120" value="${esc(dlg.note || "")}" /></label>`,
       `<div class="pos-dlg-price">${money(total)}</div><button type="button" class="btn btn-red btn-grow" id="dlgAdd" ${left ? "disabled" : ""}>${left ? t("pickMore").replace("{n}", left) : t("addToOrder")}</button>`);
   }
@@ -195,7 +199,10 @@
     const details = [`Meat: ${dlg.meatPicks.map((id) => setItem[id].name).join(", ")}`, `Vegetables: ${dlg.vegPicks.map((id) => setItem[id].name).join(", ")}`];
     if (dlg.addons.length) details.push("Add-on: " + dlg.addons.map((id) => setItem[id].name).join(", "));
     details.push(`Taste ${ta.id}: ${ta.name}`);
-    if (SET.askSpicy) details.push(`Spicy ${dlg.spicy} (${sp ? sp.name : "not spicy"}) · Mala ${dlg.mala}`);
+    if (SET.askSpicy) {
+      details.push(`Spicy ${dlg.spicy} (${sp ? sp.name : "not spicy"}) · Mala ${dlg.mala}`);
+      details.push(`Salt ${saltValue(dlg.salt)}%`);
+    }
     if (dlg.note) details.push(`“${dlg.note}”`);
     addLine({ key: "set|" + z.id + "|" + details.join("|"), name: `${it.name} · ${z.name}`, unit: z.price + addonTotal(), qty: 1, details, inventoryIds: [...dlg.meatPicks, ...dlg.vegPicks, ...dlg.addons] });
     closeDlg();
@@ -210,7 +217,7 @@
     const parts = [];
     if (it.meats) parts.push(`<h3 class="step-title">${t("chooseMeat")}</h3>${chips("dmeat", it.meats.map((m) => [m.id, `${m.name} ${money(m.price)}`]), meat.id)}`);
     if (it.soups) parts.push(`<h3 class="step-title">${t("chooseSoup")}</h3>${chips("dsoup", it.soups.map((x) => [x.id, x.name]), dlg.soup)}`);
-    if (it.spicy) parts.push(`<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}`);
+    if (it.spicy) parts.push(`<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}<h3 class="step-title">${t("saltLevel")}</h3>${chips("dsalt", saltList(), saltValue(dlg.salt))}`);
     openDlg(it.name, parts.join("").replace('class="step-title"', 'class="step-title" style="margin-top:0"') +
       `<label class="field" style="margin-top:14px"><span>${t("noteLabel")}</span><input id="dNote" maxlength="120" value="${esc(dlg.note || "")}" /></label>`,
       `<div class="pos-dlg-price">${money(unit)}</div><button type="button" class="btn btn-red btn-grow" id="dlgAdd">${t("addToOrder")}</button>`);
@@ -221,7 +228,10 @@
     const sp = MENU.spicy.find((s) => s.level === dlg.spicy);
     const details = [];
     if (it.soups) details.push(`Soup: ${(it.soups.find((x) => x.id === dlg.soup) || it.soups[0]).name}`);
-    if (it.spicy) details.push(`Spicy ${dlg.spicy}${sp ? " (" + sp.name + ")" : " (not spicy)"} · Mala ${dlg.mala}`);
+    if (it.spicy) {
+      details.push(`Spicy ${dlg.spicy}${sp ? " (" + sp.name + ")" : " (not spicy)"} · Mala ${dlg.mala}`);
+      details.push(`Salt ${saltValue(dlg.salt)}%`);
+    }
     if (dlg.note) details.push(`“${dlg.note}”`);
     const name = meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name;
     addLine({ key: it.id + "|" + name + "|" + details.join("|"), name, unit: meat ? meat.price : it.price, qty: 1, details });
@@ -300,11 +310,11 @@
     if (!el || !el.closest("#posView, #posDialog")) return;
     const d = el.dataset;
     if (d.pcat) { sale.cat = d.pcat; return renderMenu(); }
-    if (d.pbowl) { dlg = { kind: "bowl", dish: d.pbowl, style: styles.find((s) => s.dish === d.pbowl).id, meat: 0, veg: 0, spicy: 2, mala: 2, note: "" }; return bowlDialog(); }
+    if (d.pbowl) { dlg = { kind: "bowl", dish: d.pbowl, style: styles.find((s) => s.dish === d.pbowl).id, meat: 0, veg: 0, spicy: 2, mala: 2, salt: 100, note: "" }; return bowlDialog(); }
     if (d.pitem) {
       const it = items[d.pitem];
-      if (it.set && SET) { dlg = { kind: "set", size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, note: "" }; return setDialog(); }
-      if (it.meats || it.soups || it.spicy) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, note: "" }; return itemDialog(); }
+      if (it.set && SET) { dlg = { kind: "set", size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, salt: 100, note: "" }; return setDialog(); }
+      if (it.meats || it.soups || it.spicy) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, salt: 100, note: "" }; return itemDialog(); }
       return addLine({ key: it.id, name: it.name, unit: it.price, qty: 1, details: [] });
     }
     if (d.ptype) { sale.type = d.ptype; return renderTicket(); }
@@ -347,6 +357,7 @@
     if (d.dstyle) { keep(); dlg.style = d.dstyle; return redraw(); }
     if (d.dspicy != null) { keep(); dlg.spicy = Number(d.dspicy); return redraw(); }
     if (d.dmala) { keep(); dlg.mala = Number(d.dmala); return redraw(); }
+    if (d.dsalt) { keep(); dlg.salt = Number(d.dsalt); return redraw(); }
     if (el.id === "dlgAdd") { keep(); return dlg.kind === "set" ? commitSet() : dlg.kind === "bowl" ? commitBowl() : commitItem(); }
     if (d.cashq) { $("#cashIn").value = d.cashq; $("#cashIn").dispatchEvent(new Event("input")); return; }
     if (el.id === "payConfirm") return finish(dlg.method, true);

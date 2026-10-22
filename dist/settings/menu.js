@@ -71,7 +71,7 @@ window.MAHA_MENU = {
 
   // Build your bowl (ချိန်ရောင်း) — enabled: false = website နဲ့ POS မှာ မပြတော့ဘူး။ ပြန်ဖွင့်ချင်ရင် true ပြောင်းပါ။
   bowl: {
-    enabled: false,
+    enabled: true,
     pricePer100g: { meat: 55, veg: 55 },
     dishes: [
       { id: "malatang", name: "Mala Tang", th: "หม่าล่าทั่ง", kind: "soup", img: "images/dishes/dish-malatang.webp" },

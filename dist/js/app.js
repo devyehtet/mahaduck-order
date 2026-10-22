@@ -28,8 +28,11 @@
     cartView: "cart", // cart | checkout | success | orders
     lastOrder: null,
   };
-  if (!CFG.orderTypes.includes(state.type)) state.type = CFG.orderTypes[0];
+  const orderTypes = tableParam ? ["dinein"] : CFG.orderTypes;
+  if (!orderTypes.includes(state.type)) state.type = orderTypes[0];
   const t = window.makeT(() => state.lang);
+  const SALT_LEVELS = [25, 50, 75, 100];
+  const saltValue = (n) => (SALT_LEVELS.includes(Number(n)) ? Number(n) : 100);
 
   const allItems = {};
   MENU.sections.forEach((s) => s.items.forEach((it) => (allItems[it.id] = { ...it, section: s.id })));
@@ -165,7 +168,7 @@
   function typeOptions(container, cls) {
     if (window.MahaDuckComponents && window.MahaDuckComponents.typeOptions) {
       container.innerHTML = window.MahaDuckComponents.typeOptions({
-        orderTypes: CFG.orderTypes,
+        orderTypes,
         activeType: state.type,
         stateLang: state.lang,
         t,
@@ -174,7 +177,7 @@
       });
       return;
     }
-    container.innerHTML = CFG.orderTypes
+    container.innerHTML = orderTypes
       .map((ty) => {
         const locked = state.table && ty !== "dinein";
         return `<button type="button" class="type-opt" role="radio" aria-checked="${state.type === ty}" data-type="${ty}" ${locked ? "disabled" : ""}>
@@ -193,7 +196,7 @@
     $("#orderbarCount").textContent = n;
     $("#orderbarTotal").textContent = money(subtotal());
     const typeSwitch = $("#typeSwitch");
-    typeSwitch.hidden = (CFG.orderTypes || []).length <= 1;
+    typeSwitch.hidden = orderTypes.length <= 1;
     if (!typeSwitch.hidden) typeOptions(typeSwitch);
 
     const notice = $("#shopNotice");
@@ -373,7 +376,7 @@
     addLine({ key: lineKey(id), kind: "item", itemId: id, name: it.name, th: it.th, img: it.img || "", unitPrice: it.price, qty: 1, options: {} });
   }
 
-  const setB = { step: 0, size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, note: "", editKey: null };
+  const setB = { step: 0, size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, salt: 100, note: "", editKey: null };
   // Add-ons: once both set quotas are full, extra items can be added at their own menu price.
   const ADDONS_ON = Boolean(SET && SET.addOns !== false);
   const canAddOn = (id) => ADDONS_ON && setItem[id] && typeof setItem[id].price === "number";
@@ -417,7 +420,7 @@
     setB.picks = [...setB.meatPicks, ...setB.vegPicks];
   }
   function openSet(sizeId, fromLine) {
-    const defaults = { step: sizeId ? 1 : 0, size: sizeById[sizeId] ? sizeId : "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, note: "", editKey: null };
+    const defaults = { step: sizeId ? 1 : 0, size: sizeById[sizeId] ? sizeId : "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, salt: 100, note: "", editKey: null };
     if (fromLine) Object.assign(setB, defaults, JSON.parse(JSON.stringify(fromLine.options)), { step: 1, editKey: fromLine.key });
     else Object.assign(setB, defaults);
     setB.meatPicks = (setB.meatPicks || []).filter((id) => setItem[id]);
@@ -476,7 +479,7 @@
       body.innerHTML = `<h3 class="step-title">${t("chooseTaste")}</h3><div class="taste-list" role="radiogroup">${SET.tastes
         .map((x) => `<button type="button" class="taste" role="radio" aria-checked="${setB.taste === x.id}" data-staste="${x.id}"><i>${x.id}</i><span><strong>${esc(local(x))}</strong><small>${esc(sub(x))}</small></span></button>`)
         .join("")}</div>
-        ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${spicePicker(setB.spicy, true)}<h3 class="step-title">${t("malaLevel")}</h3>${malaPicker(setB.mala)}` : ""}
+        ${SET.askSpicy ? `<h3 class="step-title">${t("spicyLevel")}</h3>${spicePicker(setB.spicy, true)}<h3 class="step-title">${t("malaLevel")}</h3>${malaPicker(setB.mala)}<h3 class="step-title">${t("saltLevel")}</h3>${saltPicker(setB.salt)}` : ""}
         <h3 class="step-title">${t("noteLabel")}</h3>
         <label class="field"><span class="sr-only">${t("noteLabel")}</span><textarea id="sNote" rows="2" maxlength="200" placeholder="${esc(t("notePh"))}">${esc(setB.note)}</textarea></label>
         <div class="totals"><div><span>${esc(local(it))} · ${esc(sizeName(z))}</span></div>
@@ -497,7 +500,7 @@
     normalizeSet();
     const opts = { size: setB.size, meatPicks: [...setB.meatPicks], vegPicks: [...setB.vegPicks], picks: [...setB.picks], taste: setB.taste, note: setB.note.trim() };
     if (setB.addons.length) opts.addons = [...setB.addons];
-    if (SET.askSpicy) { opts.spicy = setB.spicy; opts.mala = setB.mala; }
+    if (SET.askSpicy) { opts.spicy = setB.spicy; opts.mala = setB.mala; opts.salt = saltValue(setB.salt); }
     const line = { key: lineKey("set", opts), kind: "set", itemId: it.id, name: `${it.name} · ${z.name}`, th: `${it.th} · ${z.th}`, my: it.my ? `${it.my} · ${z.my}` : "", img: it.img || "", unitPrice: z.price + addonTotal(opts.addons), qty: 1, options: opts };
     $("#setSheet").close();
     if (setB.editKey) {
@@ -510,14 +513,15 @@
     addLine(line);
   }
 
-  const builder = { step: 0, dish: "malatang", style: "S1", ing: {}, spicy: 2, mala: 2, note: "", editKey: null, tab: "meat" };
+  const builder = { step: 0, dish: "malatang", style: "S1", ing: {}, spicy: 2, mala: 2, salt: 100, note: "", editKey: null, tab: "meat" };
 
   function openBuilder(dishId, fromLine) {
     if (fromLine) {
       Object.assign(builder, JSON.parse(JSON.stringify(fromLine.options)), { step: 1, editKey: fromLine.key, tab: "meat" });
+      builder.salt = saltValue(builder.salt);
     } else {
       const d = dishId && dishById[dishId] ? dishId : builder.dish;
-      Object.assign(builder, { step: 0, dish: d, style: MENU.bowl.styles.find((s) => s.dish === d).id, ing: {}, spicy: 2, mala: 2, note: "", editKey: null, tab: "meat" });
+      Object.assign(builder, { step: 0, dish: d, style: MENU.bowl.styles.find((s) => s.dish === d).id, ing: {}, spicy: 2, mala: 2, salt: 100, note: "", editKey: null, tab: "meat" });
     }
     renderBuilder();
     $("#builder").showModal();
@@ -616,11 +620,18 @@
       .map((n) => `<button type="button" role="radio" aria-checked="${current === n}" class="${n <= current ? "lit" : ""}" data-mala="${n}">${n}</button>`)
       .join("")}</div>`;
   }
+  function saltPicker(current) {
+    const cur = saltValue(current);
+    return `<div class="salt-pick" role="radiogroup">${SALT_LEVELS
+      .map((n) => `<button type="button" role="radio" aria-checked="${cur === n}" data-salt="${n}">${n}%</button>`)
+      .join("")}</div>`;
+  }
 
   function builderHeatStep() {
     const chosen = Object.entries(builder.ing).filter(([, p]) => p).map(([id, p]) => `${local(ingIndex[id])} ${p * 100}g`).join(", ");
     return `<h3 class="step-title">${t("spicyLevel")}</h3>${spicePicker(builder.spicy)}
       <h3 class="step-title">${t("malaLevel")}</h3>${malaPicker(builder.mala)}
+      <h3 class="step-title">${t("saltLevel")}</h3>${saltPicker(builder.salt)}
       <h3 class="step-title">${t("noteLabel")}</h3>
       <label class="field"><span class="sr-only">${t("noteLabel")}</span><textarea id="bNote" rows="2" maxlength="200" placeholder="${esc(t("notePh"))}">${esc(builder.note)}</textarea></label>
       <div class="totals"><div><span>${esc(dishById[builder.dish].name)} · ${builder.style} ${esc(local(styleById[builder.style]))}</span></div>
@@ -629,7 +640,7 @@
   }
 
   function commitBowl() {
-    const opts = { dish: builder.dish, style: builder.style, ing: Object.fromEntries(Object.entries(builder.ing).filter(([, p]) => p)), spicy: builder.spicy, mala: builder.mala, note: builder.note.trim() };
+    const opts = { dish: builder.dish, style: builder.style, ing: Object.fromEntries(Object.entries(builder.ing).filter(([, p]) => p)), spicy: builder.spicy, mala: builder.mala, salt: saltValue(builder.salt), note: builder.note.trim() };
     const d = dishById[builder.dish];
     const line = { key: lineKey("bowl", opts), kind: "bowl", itemId: "bowl-" + d.id, name: d.name, th: d.th, img: styleById[builder.style].img, unitPrice: bowlPrice(opts.ing), qty: 1, options: opts };
     if (builder.editKey) {
@@ -644,14 +655,14 @@
     $("#builder").close();
   }
 
-  const itemState = { it: null, meat: "", soup: "", spicy: 2, mala: 2, note: "", qty: 1, editKey: null };
+  const itemState = { it: null, meat: "", soup: "", spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null };
   const meatOf = (it, id) => (it.meats ? it.meats.find((m) => m.id === id) || it.meats[0] : null);
   const soupOf = (it, id) => (it.soups ? it.soups.find((x) => x.id === id) || it.soups[0] : null);
   function openItemSheet(it, fromLine, meatId) {
-    Object.assign(itemState, { it, meat: it.meats ? meatOf(it, meatId).id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, note: "", qty: 1, editKey: null });
+    Object.assign(itemState, { it, meat: it.meats ? meatOf(it, meatId).id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null });
     if (fromLine) {
       const o = fromLine.options || {};
-      Object.assign(itemState, { meat: it.meats ? meatOf(it, o.meat).id : "", soup: it.soups ? soupOf(it, o.soup).id : "", spicy: o.spicy != null ? o.spicy : 2, mala: o.mala || 2, note: o.note || "", qty: fromLine.qty, editKey: fromLine.key });
+      Object.assign(itemState, { meat: it.meats ? meatOf(it, o.meat).id : "", soup: it.soups ? soupOf(it, o.soup).id : "", spicy: o.spicy != null ? o.spicy : 2, mala: o.mala || 2, salt: saltValue(o.salt), note: o.note || "", qty: fromLine.qty, editKey: fromLine.key });
     }
     renderItemSheet();
     if (!$("#itemSheet").open) $("#itemSheet").showModal();
@@ -678,7 +689,7 @@
           ${x.img ? `<img src="${x.img}" alt="" />` : ""}<strong>${esc(local(x))}</strong><small>${esc(sub(x))}</small></button>`)
         .join("")}</div>`;
     }
-    if (it.spicy) html += `<h3 class="step-title">${t("spicyLevel")}</h3>${spicePicker(itemState.spicy, true)}<h3 class="step-title">${t("malaLevel")}</h3>${malaPicker(itemState.mala)}`;
+    if (it.spicy) html += `<h3 class="step-title">${t("spicyLevel")}</h3>${spicePicker(itemState.spicy, true)}<h3 class="step-title">${t("malaLevel")}</h3>${malaPicker(itemState.mala)}<h3 class="step-title">${t("saltLevel")}</h3>${saltPicker(itemState.salt)}`;
     html += `<h3 class="step-title">${t("noteLabel")}</h3><label class="field"><textarea id="iNote" rows="2" maxlength="200" placeholder="${esc(t("notePh"))}">${esc(itemState.note)}</textarea></label>`;
     $("#itemBody").innerHTML = html;
     $("#itemFoot").innerHTML = `<div class="stepper"><button type="button" data-iq="-1" ${itemState.qty <= 1 ? "disabled" : ""} aria-label="−">−</button><output>${itemState.qty}</output><button type="button" class="plus" data-iq="1" aria-label="+">+</button></div>
@@ -690,7 +701,7 @@
     const opts = { note: itemState.note.trim() };
     if (meat) opts.meat = meat.id;
     if (it.soups) opts.soup = soupOf(it, itemState.soup).id;
-    if (it.spicy) { opts.spicy = itemState.spicy; opts.mala = itemState.mala; }
+    if (it.spicy) { opts.spicy = itemState.spicy; opts.mala = itemState.mala; opts.salt = saltValue(itemState.salt); }
     const line = {
       key: lineKey(it.id, opts), kind: "item", itemId: it.id,
       name: meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name,
@@ -728,6 +739,7 @@
       const sp = MENU.spicy.find((s) => s.level === o.spicy);
       out.push(`${forKitchen ? "Spicy" : t("spicyLevel")} ${o.spicy}${sp ? " (" + (forKitchen ? sp.name : spiceName(sp)) + ")" : forKitchen ? " (not spicy)" : " (" + t("noSpicy") + ")"}${o.mala ? ` · ${forKitchen ? "Mala" : "Mala"} ${o.mala}` : ""}`);
     }
+    if (o.salt != null) out.push(`${forKitchen ? "Salt" : t("saltLevel")} ${saltValue(o.salt)}%`);
     if (o.note) out.push(`“${o.note}”`);
     return out;
   }
@@ -781,7 +793,7 @@
             <div class="stepper"><button type="button" data-q="${i}" data-d="-1" aria-label="${t("remove")}">${l.qty === 1 ? '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 12H7L6 9Z"/></svg>' : "−"}</button><output>${l.qty}</output><button type="button" class="plus" data-q="${i}" data-d="1" aria-label="+">+</button></div></div></div>
         </div>`
         )
-        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + totalsHtml + `<p class="form-error" id="formError" role="alert"></p>`;
+        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + (tableParam ? `<p class="cart-table">${esc(t("tableBanner"))} <strong>${esc(tableParam)}</strong></p>` : "") + totalsHtml + `<p class="form-error" id="formError" role="alert"></p>`;
       const minOk = sub >= (CFG.minOrder || 0);
       foot.innerHTML = `<button class="btn btn-red btn-grow" type="button" id="placeOrder" ${minOk ? "" : "disabled"}>${minOk ? t("placeOrder") : `${t("minOrder")} ${money(CFG.minOrder)}`} · ${money(sub + fee)}</button>`;
       return;
@@ -896,7 +908,7 @@
     $("#formError").textContent = "";
     const c = state.customer;
     const sub = subtotal();
-    const orderType = "pickup";
+    const orderType = tableParam ? "dinein" : "pickup";
     const fee = 0;
     const resetButton = () => {
       btn.disabled = false;
@@ -917,12 +929,12 @@
     }
     const order = {
       order_type: orderType,
-      table_no: null,
-      customer_name: c.name || "Facebook Customer",
+      table_no: tableParam || null,
+      customer_name: tableParam ? `Table ${tableParam}` : c.name || "Facebook Customer",
       phone: null,
       address: null,
       map_link: null,
-      pickup_time: "ASAP",
+      pickup_time: tableParam ? null : "ASAP",
       payment: "cash",
       note: null,
       items: state.cart.map((l) => ({
@@ -936,7 +948,7 @@
     try {
       const saved = await api.createOrder(order);
       state.lastOrder = {
-        code: saved.code, total: saved.total, created_at: saved.created_at, type: saved.order_type, order_type: saved.order_type, status: "new",
+        code: saved.code, total: saved.total, created_at: saved.created_at, type: saved.order_type, order_type: saved.order_type, table_no: saved.table_no, status: "new",
         payment: saved.payment, payment_status: "unpaid", feeUnknown: false,
       };
       state.myOrders = [state.lastOrder, ...state.myOrders.filter((o) => o.code !== saved.code)].slice(0, 20);
@@ -1044,6 +1056,7 @@
     body.innerHTML = `<div class="success"><img src="images/mascot/duck-welcome.webp" alt="" />
       <h3>${t("thanks")}</h3><p style="color:var(--muted)">${t("thanksSub")}</p>
       <div class="code-box">${esc(o.code)}</div>
+      ${o.table_no ? `<p class="cart-table">${esc(t("tableBanner"))} <strong>${esc(o.table_no)}</strong></p>` : ""}
       <p><strong>${money(o.total)}</strong></p>
       <div id="payBox" style="width:100%">${payHtml(o)}</div>
       <div id="trackerBox" style="width:100%">${trackerHtml(o.status, o.order_type || o.type, o.delivery_provider, o.delivery_started_at)}</div>
@@ -1089,7 +1102,7 @@
     const href = el.getAttribute("href") || "";
     if (href.startsWith("#sec-") || href === "#menu") { e.preventDefault(); if ($("#cart").open) $("#cart").close(); return goToSection(href === "#menu" ? firstSec() : href.slice(1)); }
     if (d.lang) { state.lang = d.lang; S.set("mahaduck-lang", state.lang); applyLang(); return; }
-    if (d.type && !el.disabled) {
+    if (d.type && orderTypes.includes(d.type) && !el.disabled) {
       if (state.cartView === "checkout") readCheckout();
       state.type = d.type; S.set("mahaduck-type", d.type); renderHeader(); if ($("#cart").open) renderCart(); return;
     }
@@ -1114,6 +1127,7 @@
       if (d.staste) { keep(); setB.taste = Number(d.staste); return redraw(); }
       if (d.spicy != null) { keep(); setB.spicy = Number(d.spicy); return redraw(); }
       if (d.mala) { keep(); setB.mala = Number(d.mala); return redraw(); }
+      if (d.salt) { keep(); setB.salt = Number(d.salt); return redraw(); }
       if (el.id === "setNext") {
         if (setB.step === 2) { keep(); return commitSet(); }
         setB.step++; renderSet(); $("#setBody").scrollTop = 0; return;
@@ -1137,6 +1151,7 @@
     }
     if (d.spicy != null && el.closest("#builder")) { builder.spicy = Number(d.spicy); builder.note = $("#bNote")?.value || builder.note; const y = $("#builderBody").scrollTop; renderBuilder(); $("#builderBody").scrollTop = y; return; }
     if (d.mala && el.closest("#builder")) { builder.mala = Number(d.mala); builder.note = $("#bNote")?.value || builder.note; const y = $("#builderBody").scrollTop; renderBuilder(); $("#builderBody").scrollTop = y; return; }
+    if (d.salt && el.closest("#builder")) { builder.salt = Number(d.salt); builder.note = $("#bNote")?.value || builder.note; const y = $("#builderBody").scrollTop; renderBuilder(); $("#builderBody").scrollTop = y; return; }
     if (el.id === "builderNext") {
       if (builder.step === 2) { builder.note = $("#bNote")?.value || ""; return commitBowl(); }
       builder.step++; renderBuilder(); $("#builderBody").scrollTop = 0; return;
@@ -1151,6 +1166,7 @@
       if (d.isoup) { keepNote(); itemState.soup = d.isoup; renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.spicy != null) { keepNote(); itemState.spicy = Number(d.spicy); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.mala) { keepNote(); itemState.mala = Number(d.mala); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
+      if (d.salt) { keepNote(); itemState.salt = Number(d.salt); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.iq) { keepNote(); itemState.qty = Math.max(1, Math.min(20, itemState.qty + Number(d.iq))); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (el.id === "itemAdd") { itemState.note = $("#iNote")?.value || ""; return commitItem(); }
     }

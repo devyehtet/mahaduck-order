@@ -39,6 +39,8 @@
     lang: S.get("mahaduck-admin-lang", "my"),
     orders: [],
     filter: "active",
+    source: "all",
+    table: "all",
     range: "today",
     known: null,
     sound: S.get("mahaduck-admin-sound", true),
@@ -52,7 +54,10 @@
   const t = window.makeT(() => state.lang);
   const ACTIVE = ["new", "preparing", "ready", "out_for_delivery"];
   const NEXT = { new: ["preparing", "a_accept"], preparing: ["ready", "a_ready"], ready: ["completed", "a_complete"], out_for_delivery: ["completed", "a_complete"] };
-  const isFacebookOrder = (o) => (o.source || "online") === "online";
+  const isOnlineOrder = (o) => (o.source || "online") === "online";
+  const isTableOrder = (o) => isOnlineOrder(o) && o.order_type === "dinein";
+  const isFacebookOrder = (o) => isOnlineOrder(o) && !isTableOrder(o);
+  const tableLabel = (o) => `${t("table")} ${o.table_no || "-"}`;
   const facebookNameRe = /^(online customer|guest|facebook customer)$/i;
   const SET = MENU.malaSet || null;
 
@@ -155,14 +160,14 @@
   // ---------- data ----------
   async function load() {
     try {
-      const rows = (await api.listOrders(rangeStart())).filter(isFacebookOrder);
+      const rows = (await api.listOrders(rangeStart())).filter(isOnlineOrder);
       const fresh = rows.filter((o) => o.status === "new" && state.known && !state.known.has(o.id));
       state.known = new Set(rows.map((o) => o.id));
       state.payState = new Map(rows.map((o) => [o.id, o.payment_status || "unpaid"]));
       state.orders = rows;
       if (fresh.length) {
         chime();
-        toast(`${t("newOrderToast")} ${fresh.map((o) => o.code).join(", ")}`);
+        toast(`${t("newOrderToast")} ${fresh.map((o) => isTableOrder(o) ? `${tableLabel(o)} · ${o.code}` : o.code).join(", ")}`);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }
       state.orders = rows;
@@ -275,7 +280,7 @@
     ];
     board.innerHTML = groups.map((group) => {
       const items = kitchenList.filter((o) => o.status === group.key).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      return `<div class="col col-${group.key}"><h3>${group.label} <b>${items.length}</b></h3>${items.map((o) => `<article class="order st-${o.status}" data-id="${esc(o.id)}"><header><strong class="code">${esc(o.code)}</strong></header><ul class="items">${(o.items || []).map((i) => `<li><b>${i.qty}×</b><div><span>${esc(i.name)}</span>${(i.details || []).slice(0, 2).map((d) => `<small>${esc(d)}</small>`).join("")}</div></li>`).join("")}</ul><footer><button class="btn btn-sm ${o.status === "ready" ? "btn-line" : "btn-green"} grow" type="button" data-set="${o.status === "new" ? "preparing" : o.status === "preparing" ? "ready" : "completed"}" ${state.busy.has(o.id) ? "disabled" : ""}>${t(o.status === "new" ? "a_accept" : o.status === "preparing" ? "a_ready" : "a_complete")}</button></footer></article>`).join("") || `<p class="col-empty">—</p>`}</div>`;
+      return `<div class="col col-${group.key}"><h3>${group.label} <b>${items.length}</b></h3>${items.map((o) => `<article class="order st-${o.status}" data-id="${esc(o.id)}"><header><strong class="code">${esc(o.code)}</strong></header><div class="meta">${sourceChip(o)}${typeChip(o)}</div><ul class="items">${(o.items || []).map((i) => `<li><b>${i.qty}×</b><div><span>${esc(i.name)}</span>${(i.details || []).map((d) => `<small>${esc(d)}</small>`).join("")}</div></li>`).join("")}</ul><footer><button class="btn btn-sm ${o.status === "ready" ? "btn-line" : "btn-green"} grow" type="button" data-set="${o.status === "new" ? "preparing" : o.status === "preparing" ? "ready" : "completed"}" ${state.busy.has(o.id) ? "disabled" : ""}>${t(o.status === "new" ? "a_accept" : o.status === "preparing" ? "a_ready" : "a_complete")}</button></footer></article>`).join("") || `<p class="col-empty">—</p>`}</div>`;
     }).join("");
     const stats = document.getElementById("kitchenStats");
     if (stats) {
@@ -358,15 +363,58 @@
       const good = orders.filter((o) => o.status !== "cancelled");
       const revenue = good.reduce((sum, o) => sum + (o.total || 0), 0);
       const rows = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((o) => `<li>
-        <span><b>${esc(o.code)}</b><small>${clock(o.created_at)} · ${esc(customerName(o))}</small></span>
+        <span><b>${esc(o.code)}</b><small>${clock(o.created_at)} · ${esc(isTableOrder(o) ? tableLabel(o) : customerName(o))}</small></span>
         <em class="${o.status}">${t("st_" + o.status)}</em><strong>${money(o.total)}</strong>
       </li>`).join("");
       return `<article class="daily-card"><header><div><h3>${esc(dayLabel(key))}</h3><p>${orders.length} ${t("dailyOrders")} · ${t("dailyNet")} ${money(revenue)}</p></div><strong>${money(revenue)}</strong></header><ul>${rows}</ul></article>`;
     }).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${t("noDaily")}</p></div>`;
   }
 
+  function counterOrders() {
+    return state.orders.filter((o) => {
+      if (isTableOrder(o)) return state.source !== "online" && (state.table === "all" || o.table_no === state.table);
+      return state.source !== "table" && isFacebookOrder(o);
+    });
+  }
+
+  function renderSourceFilters() {
+    $("#sourceFilters").innerHTML = [["all", t("bothQueues")], ["online", t("onlineOrders")], ["table", t("tableOrders")]]
+      .map(([source, label]) => `<button type="button" role="tab" aria-selected="${state.source === source}" data-source="${source}">${esc(label)} <b>${state.orders.filter((o) => source === "all" || (source === "table" ? isTableOrder(o) : isFacebookOrder(o))).length}</b></button>`).join("");
+    const tables = [...new Set(state.orders.filter(isTableOrder).map((o) => o.table_no).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    if (!tables.includes(state.table)) state.table = "all";
+    $("#tableFilterField").hidden = state.source === "online";
+    $("#tableFilter").innerHTML = `<option value="all">${esc(t("allTables"))}</option>` + tables.map((n) => `<option value="${esc(n)}">${esc(t("table"))} ${esc(n)}</option>`).join("");
+    $("#tableFilter").value = state.table;
+  }
+
+  function renderCounterBoard(orders) {
+    const list = orders.filter((o) => state.filter === "all" || (state.filter === "active" ? ACTIVE.includes(o.status) : o.status === state.filter));
+    const oldestFirst = (a, b) => a.created_at.localeCompare(b.created_at);
+    const online = list.filter(isFacebookOrder).sort((a, b) => state.filter === "active"
+      ? ACTIVE.indexOf(a.status) - ACTIVE.indexOf(b.status) || oldestFirst(a, b)
+      : oldestFirst(a, b));
+    const tableOrders = list.filter(isTableOrder);
+    const tables = [...new Set(tableOrders.map((o) => o.table_no || "-"))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const empty = `<p class="queue-empty">${esc(t("noActive"))}</p>`;
+    const tableHtml = tables.map((table) => {
+      const rows = tableOrders.filter((o) => (o.table_no || "-") === table).sort(oldestFirst);
+      return `<section class="table-group"><h3>${esc(t("table"))} ${esc(table)} <span>${rows.length} ${esc(t("orders"))}</span></h3><div class="table-orders">${rows.map(card).join("")}</div></section>`;
+    }).join("");
+    const queues = [
+      { id: "online", title: t("onlineOrders"), rows: online, html: `<div class="queue-list">${online.map(card).join("") || empty}</div>` },
+      { id: "table", title: t("tableOrders"), rows: tableOrders, html: `<div class="table-board">${tableHtml || empty}</div>` },
+    ].filter((queue) => state.source === "all" || state.source === queue.id);
+    const board = $("#board");
+    board.className = `board counter-queues${state.source === "all" ? "" : " queue-single"}`;
+    board.innerHTML = queues.map((queue) => `<section class="counter-queue" data-counter-source="${queue.id}" aria-labelledby="queue-${queue.id}">
+      <header class="queue-head"><h2 id="queue-${queue.id}">${esc(queue.title)}</h2><span>${queue.rows.length} ${esc(t("orders"))}</span></header>
+      ${queue.html}</section>`).join("");
+  }
+
   function render() {
-    renderStats("stats", state.orders, "Orders");
+    renderSourceFilters();
+    const orders = counterOrders();
+    renderStats("stats", orders, "Orders");
     renderStats("customerStats", state.orders, "Customer");
     renderStats("kitchenStats", state.orders, "Kitchen");
     const rangeSel = $("#rangeSel");
@@ -376,11 +424,11 @@
 
     const valid = state.orders.filter((o) => o.status !== "cancelled");
     const revenue = valid.reduce((n, o) => n + (o.total || 0), 0);
-    const active = state.orders.filter((o) => ACTIVE.includes(o.status)).length;
+    const active = orders.filter((o) => ACTIVE.includes(o.status)).length;
     const newCount = state.orders.filter((o) => o.status === "new").length;
     document.title = (newCount ? `(${newCount}) ` : "") + "Maha Duck — Orders";
     const filters = ["active", "new", "preparing", "ready", "out_for_delivery", "completed", "cancelled", "all"];
-    const count = (f) => f === "all" ? state.orders.length : f === "active" ? active : state.orders.filter((o) => o.status === f).length;
+    const count = (f) => f === "all" ? orders.length : f === "active" ? active : orders.filter((o) => o.status === f).length;
     $("#filters").innerHTML = filters.map((f) => `<button type="button" role="tab" aria-selected="${state.filter === f}" data-filter="${f}">${t("f_" + f)} <b>${count(f)}</b></button>`).join("");
 
     const board = $("#board");
@@ -393,31 +441,22 @@
       return;
     }
 
-    if (state.filter === "active" && window.matchMedia("(min-width: 960px)").matches) {
-      board.className = "board kanban";
-      board.innerHTML = ACTIVE.map((st) => {
-        const list = state.orders.filter((o) => o.status === st).sort((a, b) => a.created_at.localeCompare(b.created_at));
-        return `<div class="col col-${st}"><h3>${t("f_" + st)} <b>${list.length}</b></h3>${list.map(card).join("") || `<p class="col-empty">—</p>`}</div>`;
-      }).join("");
-      return;
-    }
-    board.className = "board list";
-    let list = state.filter === "all" ? state.orders : state.filter === "active" ? state.orders.filter((o) => ACTIVE.includes(o.status)) : state.orders.filter((o) => o.status === state.filter);
-    if (state.filter === "active") list = [...list].sort((a, b) => ACTIVE.indexOf(a.status) - ACTIVE.indexOf(b.status) || a.created_at.localeCompare(b.created_at));
-    board.innerHTML = list.length ? list.map(card).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${t("noActive")}</p></div>`;
+    renderCounterBoard(orders);
   }
 
   function typeChip(o) {
-    if (o.order_type === "dinein") return `<span class="chip dinein">${t("dinein")}${o.table_no ? " · " + esc(o.table_no) : ""}</span>`;
+    if (o.order_type === "dinein") return `<span class="chip dinein table-number">${esc(tableLabel(o))}</span>`;
     if (o.order_type === "pickup" && o.source === "pos") return `<span class="chip pickup">${t("takeaway")}</span>`;
     if (o.order_type === "pickup") return `<span class="chip pickup">${t("pickup")}${o.pickup_time ? " · " + esc(o.pickup_time === "ASAP" ? t("asap") : o.pickup_time) : ""}</span>`;
     return `<span class="chip delivery">${t("delivery")}</span>`;
   }
   function sourceChip(o) {
+    if (isTableOrder(o)) return `<span class="chip src-table">${t("sourceTable")}</span>`;
     return isFacebookOrder(o) ? `<span class="chip src-facebook">${t("sourceFacebook")}</span>` : `<span class="chip src-pos">${t("sourcePos")}</span>`;
   }
   function customerName(o) {
     const name = String(o.customer_name || "").trim();
+    if (isTableOrder(o) && (!name || facebookNameRe.test(name) || name === `Table ${o.table_no}`)) return tableLabel(o);
     return !name || facebookNameRe.test(name) ? t("facebookCustomer") : name;
   }
 
@@ -538,7 +577,7 @@
       <h2>MAHA DUCK</h2><p class="c">THE MASTER OF MALA<br/>${esc(CFG.location)}${CFG.phone ? "<br/>" + esc(CFG.phone) : ""}</p>
       <hr/>
       <p class="xl">${typeLine}</p>
-      <p class="big">${esc(o.code)}${isFacebookOrder(o) ? " · FACEBOOK" : o.source === "pos" ? " · POS" : ""}</p>
+      <p class="big">${esc(o.code)}${isTableOrder(o) ? " · TABLE QR" : isFacebookOrder(o) ? " · FACEBOOK" : o.source === "pos" ? " · POS" : ""}</p>
       <p>${new Date(o.created_at).toLocaleString()}</p>
       <p>${esc(customerName(o))} ${esc(o.phone || "")}</p>
       ${o.address ? `<p>${esc(o.address)}</p>` : ""}
@@ -569,19 +608,27 @@
 
   // ---------- table QR ----------
   function menuUrl(n) {
-    const u = new URL("index.html", location.href);
+    const raw = $("#tableMenuUrl").value.trim();
+    const u = new URL(raw);
+    if (!["http:", "https:"].includes(u.protocol)) throw new Error(t("errMenuUrl"));
+    u.search = "";
+    u.hash = "";
     u.searchParams.set("table", n);
     return u.toString();
   }
   function genQR() {
-    const n = Math.max(1, Math.min(60, Number($("#tableCount").value) || 1));
+    if (!$("#tableMenuUrl").value) $("#tableMenuUrl").value = S.get("mahaduck-menu-url", new URL("index.html", location.href).toString());
+    $("#tableQrError").textContent = "";
+    try { menuUrl(1); } catch { $("#tableQrError").textContent = t("errMenuUrl"); return false; }
+    S.set("mahaduck-menu-url", $("#tableMenuUrl").value.trim());
+    const n = Math.max(1, Math.min(60, Math.floor(Number($("#tableCount").value) || 1)));
     const grid = $("#qrGrid");
     grid.innerHTML = "";
-    if (!window.qrcode) { grid.textContent = "QR library could not load."; return; }
+    if (!window.qrcode) { grid.textContent = "QR library could not load."; return false; }
     for (let i = 1; i <= n; i++) {
       const card = document.createElement("div");
       card.className = "qr-card";
-      card.innerHTML = `<div class="qr-head"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /><strong>MAHA DUCK</strong></div><div class="qr"></div><p class="qr-t">TABLE <b>${i}</b></p><p class="qr-s">Scan to order · สแกนเพื่อสั่ง · Scan ဖတ်ပြီးမှာပါ</p>`;
+      card.innerHTML = `<div class="qr-head"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /><strong>MAHA DUCK</strong></div><a class="qr" href="${esc(menuUrl(i))}" target="_blank" rel="noopener" aria-label="${esc(t("table"))} ${i}"></a><p class="qr-t">TABLE <b>${i}</b></p><p class="qr-s">Scan to order · สแกนเพื่อสั่ง · Scan ဖတ်ပြီးမှာပါ</p>`;
       grid.appendChild(card);
       const qr = window.qrcode(0, "M");
       qr.addData(menuUrl(i));
@@ -590,7 +637,7 @@
     }
   }
   function printQR() {
-    if (!$("#qrGrid").children.length) genQR();
+    if (genQR() === false) return;
     const area = $("#printArea");
     setPage("@page { size: A4; margin: 12mm; }");
     area.innerHTML = `<div class="qr-print">${$("#qrGrid").innerHTML}</div>`;
@@ -630,6 +677,7 @@
     }
     $("#noticeInput").value = state.settings.notice || "";
     applyLang();
+    if (state.view === "tables") genQR();
     startPolling();
   }
 
@@ -680,6 +728,7 @@
     const d = el.dataset;
     if (d.lang) { state.lang = d.lang; S.set("mahaduck-admin-lang", d.lang); return applyLang(); }
     if (d.filter) { state.filter = d.filter; return render(); }
+    if (d.source) { state.source = d.source; state.table = "all"; return render(); }
     if (d.invId) return changeInventory(d.invId, Number(d.invD) || 0);
     if (d.set) {
       const orderEl = el.closest(".order");
@@ -726,6 +775,7 @@
     catch (er) { state.settings.accepting_orders = !on; renderTop(); toast(er.message); }
   });
   $("#rangeSel").addEventListener("change", (e) => setRange(e.target.value));
+  $("#tableFilter").addEventListener("change", (e) => { state.table = e.target.value; render(); });
   $("#dailyRangeSel").addEventListener("change", (e) => setRange(e.target.value));
   window.addEventListener("resize", () => { clearTimeout(render.rt); render.rt = setTimeout(render, 150); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("#dashView").hidden) load(); });
