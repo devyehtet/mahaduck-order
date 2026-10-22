@@ -319,7 +319,7 @@
         const status = stock <= 0 ? `<span class="inv-status out">${t("soldOut")}</span>` : stock <= 3 ? `<span class="inv-status low">${t("inventoryLow")}</span>` : "";
         return `<div class="inv-row ${stock <= 0 ? "is-out" : ""}" data-id="${esc(item.id)}">
           <div class="inv-food">${item.img ? `<img src="${esc(item.img)}" alt="" />` : `<span class="inv-ph"><img src="images/brand/logo-mark.png?v=2026-10-06-logo" alt="" /></span>`}
-            <div><strong>${esc(menuName(item))}</strong><small>${esc(item.th || "")} · ${money(item.price || 0)}</small>${status}</div></div>
+            <div><strong>${esc(menuName(item))}</strong><small>${esc(item.th || "")}${typeof item.price === "number" ? ` · ${money(item.price)}` : ""}</small>${status}</div></div>
           <div class="inv-control" aria-label="${esc(t("stock"))}">
             <button type="button" class="inv-step" data-inv-id="${esc(item.id)}" data-inv-d="-1" ${busy || stock <= 0 ? "disabled" : ""}>−</button>
             <output>${stock}</output>

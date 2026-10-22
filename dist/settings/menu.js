@@ -21,6 +21,7 @@ window.MAHA_MENU = {
       { id: 3, name: "Mala Fragrant Oil", th: "คลุกน้ำมันหม่าล่าหอม" },
     ],
     // price = menu ပေါ်က တစ်မျိုးချင်းဈေး — Set ပြည့်ပြီးနောက် Add-on ထပ်ထည့်ရင် ဒီဈေးနဲ့ ပေါင်းမယ်
+    // Ingredients without a price are included-set choices only, not paid add-ons.
     groups: [
       { id: "duck", name: "Mala Duck", th: "หม่าล่าเป็ด", my: "ဘဲ", items: [
         { id: "duck-neck", name: "Duck Neck", th: "คอเป็ด", price: 70, img: "images/ingredients/duck-neck.webp" },
@@ -36,12 +37,15 @@ window.MAHA_MENU = {
         { id: "chicken-leg", name: "Chicken Leg", th: "น่องไก่", price: 90 },
         { id: "chicken-feet", name: "Chicken Feet", th: "ตีนไก่", price: 25 },
         { id: "chicken-cartilage", name: "Chicken Cartilage", th: "กระดูกอ่อนไก่", price: 70 },
+        { id: "black-chicken", name: "Black Chicken", th: "ไก่ดำ", my: "ကြက်မဲ" },
       ] },
       { id: "beefpork", name: "Beef & Pork", th: "เนื้อวัวและหมู", my: "အမဲ နှင့် ဝက်", items: [
         { id: "beef", name: "Beef", th: "เนื้อวัว", price: 99 },
         { id: "beef-intestine", name: "Beef Intestine", th: "ไส้วัว", price: 99 },
         { id: "beef-omasum", name: "Beef Omasum", th: "ผ้าขี้ริ้ววัว", price: 99 },
         { id: "pig-ear", name: "Pig Ear", th: "หูหมู", price: 120 },
+        { id: "pork-ribs", name: "Pork Ribs", th: "ซี่โครงหมู", my: "ဝက်နံရိုး" },
+        { id: "pork-belly", name: "Pork Belly", th: "หมูสามชั้น", my: "ဝက်သုံးထပ်သား" },
       ] },
       { id: "tofu", name: "Tofu & Mushroom", th: "เต้าหู้และเห็ด", my: "တိုဟူး နှင့် မှို", items: [
         { id: "enoki", name: "Enoki Mushroom", th: "เห็ดเข็มทอง", price: 60, img: "images/ingredients/enoki.webp" },
@@ -65,6 +69,7 @@ window.MAHA_MENU = {
         { id: "gongcai", name: "Gongcai", th: "ผักก้งฉ่าย", price: 60 },
         { id: "seaweed", name: "Seaweed", th: "สาหร่ายทะเล", price: 50 },
         { id: "kelp-sticks", name: "Kelp Sticks", th: "สาหร่ายคอมบุแท่ง", price: 50 },
+        { id: "yardlong-beans", name: "Yardlong Beans", th: "ถั่วฝักยาว", my: "ပဲတောင့်ရှည်" },
       ] },
     ],
   },
@@ -89,6 +94,9 @@ window.MAHA_MENU = {
         { id: "beef", name: "Sliced beef", th: "เนื้อสไลซ์" },
         { id: "pork", name: "Sliced pork", th: "หมูสไลซ์" },
         { id: "chicken", name: "Chicken", th: "ไก่" },
+        { id: "black-chicken", name: "Black Chicken", th: "ไก่ดำ", my: "ကြက်မဲ" },
+        { id: "pork-ribs", name: "Pork Ribs", th: "ซี่โครงหมู", my: "ဝက်နံရိုး" },
+        { id: "pork-belly", name: "Pork Belly", th: "หมูสามชั้น", my: "ဝက်သုံးထပ်သား" },
         { id: "shrimp", name: "Shrimp", th: "กุ้ง" },
         { id: "squid", name: "Squid", th: "ปลาหมึก" },
         { id: "fishball", name: "Fish balls", th: "ลูกชิ้นปลา" },
@@ -105,6 +113,7 @@ window.MAHA_MENU = {
         { id: "bokchoy", name: "Bok choy", th: "ผักกวางตุ้ง" },
         { id: "napa", name: "Napa cabbage", th: "ผักกาดขาว" },
         { id: "babycorn", name: "Baby corn", th: "ข้าวโพดอ่อน" },
+        { id: "yardlong-beans", name: "Yardlong Beans", th: "ถั่วฝักยาว", my: "ပဲတောင့်ရှည်" },
         { id: "broccoli", name: "Broccoli", th: "บรอกโคลี" },
         { id: "potato", name: "Potato", th: "มันฝรั่ง" },
         { id: "pumpkin", name: "Pumpkin", th: "ฟักทอง" },
