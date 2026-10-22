@@ -23,11 +23,26 @@
 
   const merge = (base, patch) => ({ ...base, ...patch });
 
+  function drinkExtraGroups(menu, item) {
+    if (!item.drink) return [];
+    return (menu.drinkExtras || []).map((group) => ({
+      ...group, items: group.items.filter((extra) => !extra.coffeeOnly || item.drinkGroup === "coffee"),
+    })).filter((group) => group.items.length);
+  }
+
+  function drinkSelection(menu, item, variantId, extraIds = []) {
+    const variant = item.variants.find((entry) => entry.id === variantId) || item.variants[0];
+    const extras = drinkExtraGroups(menu, item).flatMap((group) => group.items).filter((extra) => extraIds.includes(extra.id));
+    return { variant, extras, price: variant.price + extras.reduce((total, extra) => total + extra.price, 0) };
+  }
+
   window.MahaDuckCore = {
     escapeHtml,
     money,
     flames,
     localizeText,
     merge,
+    drinkExtraGroups,
+    drinkSelection,
   };
 })();

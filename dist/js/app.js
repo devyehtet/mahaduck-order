@@ -244,6 +244,7 @@
   }
 
   function cardMedia(it) {
+    if (it.drink) return `<div class="drink-code">${esc(it.code)}</div>`;
     if (it.img) {
       const plate = /dish-|style-/.test(it.img);
       return `<div class="card-media ${plate ? "plate" : ""}"><img src="${it.img}" alt="${esc(it.name)}" loading="lazy" /></div>`;
@@ -261,13 +262,13 @@
       .map(
         (sec) => `<section class="section" id="sec-${sec.id}">
         <div class="section-head"><h2>${esc(tx(sec.title))}</h2>${sec.note ? `<p>${esc(tx(sec.note))}</p>` : ""}</div>
-        <div class="grid ${sec.feature ? "feature" : sec.items.length === 1 ? "solo" : ""}">
+        <div class="grid ${sec.drinks ? "drinks" : sec.feature ? "feature" : sec.items.length === 1 ? "solo" : ""}">
           ${sec.items
             .map((it) => {
               const q = inCartQty(it.id);
               const soon = it.price == null;
               const badge = it.badge ? `<span class="badge ${it.badge === "signature" ? "red" : ""}">${t(it.badge)}</span>` : "";
-              return `<article class="card">
+              return `<article class="card ${it.drink ? "card-drink" : ""}">
                 ${badge}${q ? `<span class="in-cart" aria-label="${q} in order">${q}</span>` : ""}
                 ${cardMedia(it)}
                 <div class="card-body">
@@ -275,9 +276,10 @@
                   <div class="th">${esc(sub(it))} ${it.spicy ? flames(1) : ""}</div>
                   ${it.desc ? `<p class="desc">${esc(tx(it.desc))}</p>` : ""}
                   ${it.meats ? `<div class="size-chips">${it.meats.map((m) => `<button type="button" data-add="${it.id}" data-meat="${m.id}"><b>${esc(local(m))}</b> ${money(m.price)}</button>`).join("")}</div>` : ""}
+                  ${it.drink ? `<div class="size-chips">${it.variants.map((v) => `<button type="button" data-add="${it.id}" data-variant="${v.id}"><b>${esc(local(v))}</b> ${v.oz} oz · ${money(v.price)}</button>`).join("")}</div>` : ""}
                   ${it.set && SET ? `<div class="size-chips">${SET.sizes.map((z) => `<button type="button" data-open-set="${z.id}"><b>${esc(sizeName(z))}</b> ${money(z.price)}<small>${t("pickSetN").replace(/\{n\}/g, z.pick)}</small></button>`).join("")}</div>` : ""}
                   <div class="card-foot">
-                    ${soon ? `<span class="price muted">${t("comingSoon")}</span>` : it.set && SET ? `<span class="price">${priceRange(SET.sizes)}</span>` : it.meats ? `<span class="price">${priceRange(it.meats)}</span>` : `<span class="price">${money(it.price)}</span>`}
+                    ${soon ? `<span class="price muted">${t("comingSoon")}</span>` : it.set && SET ? `<span class="price">${priceRange(SET.sizes)}</span>` : it.meats ? `<span class="price">${priceRange(it.meats)}</span>` : it.drink ? `<span class="price">${priceRange(it.variants)}</span>` : `<span class="price">${money(it.price)}</span>`}
                     <button class="add-btn" type="button" data-add="${it.id}" aria-label="${t("add")} ${esc(it.name)}" ${soon ? "disabled" : ""}>${ICON.plus}</button>
                   </div>
                 </div>
@@ -368,11 +370,11 @@
     return id + "|" + JSON.stringify(opts || {});
   }
 
-  function quickAdd(id, meat) {
+  function quickAdd(id, meat, variant) {
     const it = allItems[id];
     if (!it || it.price == null) return;
     if (it.set && SET) return openSet();
-    if (it.meats || it.soups || it.spicy) return openItemSheet(it, null, meat);
+    if (it.meats || it.soups || it.spicy || it.drink) return openItemSheet(it, null, meat, variant);
     addLine({ key: lineKey(id), kind: "item", itemId: id, name: it.name, th: it.th, img: it.img || "", unitPrice: it.price, qty: 1, options: {} });
   }
 
@@ -655,14 +657,19 @@
     $("#builder").close();
   }
 
-  const itemState = { it: null, meat: "", soup: "", spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null };
+  const itemState = { it: null, meat: "", soup: "", variant: "", extras: [], spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null };
   const meatOf = (it, id) => (it.meats ? it.meats.find((m) => m.id === id) || it.meats[0] : null);
   const soupOf = (it, id) => (it.soups ? it.soups.find((x) => x.id === id) || it.soups[0] : null);
-  function openItemSheet(it, fromLine, meatId) {
-    Object.assign(itemState, { it, meat: it.meats ? meatOf(it, meatId).id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null });
+  function openItemSheet(it, fromLine, meatId, variantId) {
+    Object.assign(itemState, { it, meat: it.meats ? meatOf(it, meatId).id : "", soup: it.soups ? it.soups[0].id : "", variant: it.drink ? core.drinkSelection(MENU, it, variantId).variant.id : "", extras: [], spicy: 2, mala: 2, salt: 100, note: "", qty: 1, editKey: null });
     if (fromLine) {
       const o = fromLine.options || {};
       Object.assign(itemState, { meat: it.meats ? meatOf(it, o.meat).id : "", soup: it.soups ? soupOf(it, o.soup).id : "", spicy: o.spicy != null ? o.spicy : 2, mala: o.mala || 2, salt: saltValue(o.salt), note: o.note || "", qty: fromLine.qty, editKey: fromLine.key });
+      if (it.drink) {
+        const selected = core.drinkSelection(MENU, it, o.variant, o.extras || []);
+        itemState.variant = selected.variant.id;
+        itemState.extras = selected.extras.map((extra) => extra.id);
+      }
     }
     renderItemSheet();
     if (!$("#itemSheet").open) $("#itemSheet").showModal();
@@ -671,13 +678,19 @@
   function renderItemSheet() {
     const { it } = itemState;
     const meat = meatOf(it, itemState.meat);
-    const unit = meat ? meat.price : it.price;
+    const unit = it.drink ? core.drinkSelection(MENU, it, itemState.variant, itemState.extras).price : meat ? meat.price : it.price;
     const plate = it.img && /dish-|style-/.test(it.img);
     $("#itemTitle").textContent = local(it);
     let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">
       ${it.img ? `<img src="${it.img}" alt="" style="width:84px;height:84px;object-fit:${plate ? "contain" : "cover"};border-radius:${plate ? "50%" : "14px"}" />` : ""}
       <div><strong style="font-size:17px">${esc(local(it))}</strong><div style="color:var(--muted);font-size:13px">${esc(sub(it))}</div><div class="price" style="margin-top:4px">${money(unit)}</div></div></div>`;
     if (it.desc) html += `<p class="hint" style="margin:6px 0 0">${esc(tx(it.desc))}</p>`;
+    if (it.drink) {
+      html += `<h3 class="step-title">${t("drinkServing")}</h3><div class="opt-grid drink-variants" role="radiogroup" aria-label="${esc(t("drinkServing"))}">${it.variants
+        .map((v) => `<button type="button" class="opt" role="radio" aria-checked="${itemState.variant === v.id}" data-ivariant="${v.id}"><strong>${esc(local(v))}</strong><small>${v.oz} oz</small><b>${money(v.price)}</b></button>`).join("")}</div>`;
+      html += core.drinkExtraGroups(MENU, it).map((group) => `<fieldset class="drink-extra-group"><legend>${esc(local(group))} <small>${t("optional")}</small></legend><div class="drink-extra-grid">${group.items
+        .map((extra) => `<label class="drink-extra"><input type="checkbox" data-iextra="${extra.id}" ${itemState.extras.includes(extra.id) ? "checked" : ""} /><span>${esc(local(extra))}</span><b>+${money(extra.price)}</b></label>`).join("")}</div></fieldset>`).join("");
+    }
     if (it.meats) {
       html += `<h3 class="step-title">${t("chooseMeat")}</h3><div class="opt-grid" role="radiogroup">${it.meats
         .map((m) => `<button type="button" class="opt" role="radio" aria-checked="${itemState.meat === m.id}" data-imeat="${m.id}"><strong>${esc(local(m))}</strong><small>${esc(sub(m))}</small><b>${money(m.price)}</b></button>`)
@@ -699,6 +712,8 @@
     const { it } = itemState;
     const meat = meatOf(it, itemState.meat);
     const opts = { note: itemState.note.trim() };
+    const drink = it.drink ? core.drinkSelection(MENU, it, itemState.variant, itemState.extras) : null;
+    if (drink) { opts.variant = drink.variant.id; opts.extras = drink.extras.map((extra) => extra.id); }
     if (meat) opts.meat = meat.id;
     if (it.soups) opts.soup = soupOf(it, itemState.soup).id;
     if (it.spicy) { opts.spicy = itemState.spicy; opts.mala = itemState.mala; opts.salt = saltValue(itemState.salt); }
@@ -707,7 +722,7 @@
       name: meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name,
       th: meat ? `${it.th} · ${meat.th}` : it.th,
       my: meat ? `${it.my || (it.base ? it.base : it.name)} · ${meat.my || meat.name}` : it.my || "",
-      img: it.img || "", unitPrice: meat ? meat.price : it.price, qty: itemState.qty, options: opts,
+      img: it.img || "", unitPrice: drink ? drink.price : meat ? meat.price : it.price, qty: itemState.qty, options: opts,
     };
     if (itemState.editKey) {
       state.cart = state.cart.filter((l) => l.key !== itemState.editKey);
@@ -732,6 +747,14 @@
       if (ta) out.push(`${forKitchen ? "Taste" : t("taste")} ${ta.id}: ${L(ta)}`);
     }
     const item = allItems[l.itemId];
+    if (item && item.drink) {
+      const drink = core.drinkSelection(MENU, item, o.variant, o.extras || []);
+      out.push(`${item.code} · ${L(drink.variant)} · ${drink.variant.oz} oz`);
+      core.drinkExtraGroups(MENU, item).forEach((group) => {
+        const extras = drink.extras.filter((extra) => group.items.some((x) => x.id === extra.id));
+        if (extras.length) out.push(`${L(group)}: ${extras.map((extra) => L(extra) + (forKitchen ? "" : " +" + money(extra.price))).join(", ")}`);
+      });
+    }
     if (o.soup && item && item.soups) { const x = item.soups.find((q) => q.id === o.soup); if (x) out.push(`${forKitchen ? "Soup" : t("soupWord")}: ${L(x)}`); }
     if (o.style && styleById[o.style]) out.push(`${o.style} ${L(styleById[o.style])}`);
     if (o.ing) out.push(Object.entries(o.ing).map(([id, p]) => `${L(ingIndex[id])} ${p * 100}g`).join(", "));
@@ -1135,7 +1158,7 @@
       if (el.id === "setBack") { keep(); setB.step = Math.max(0, setB.step - 1); renderSet(); $("#setBody").scrollTop = 0; return; }
     }
     if ("openBuilder" in d) { e.preventDefault(); if ($("#cart").open) $("#cart").close(); openBuilder(d.openBuilder); return; }
-    if (d.add) return quickAdd(d.add, d.meat);
+    if (d.add) return quickAdd(d.add, d.meat, d.variant);
     if ("close" in d) { el.closest("dialog").close(); return; }
     if (el.id === "cartOpen" || el.id === "orderbar") return openCart("cart");
     if (el.id === "myOrdersLink") { e.preventDefault(); return openCart("orders"); }
@@ -1160,10 +1183,11 @@
 
     // item sheet
     if (el.closest("#itemSheet")) {
-      const keepNote = () => (itemState.note = $("#iNote")?.value || itemState.note);
+      const keepNote = () => (itemState.note = $("#iNote")?.value ?? itemState.note);
       const y = $("#itemBody").scrollTop;
       if (d.imeat) { keepNote(); itemState.meat = d.imeat; renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.isoup) { keepNote(); itemState.soup = d.isoup; renderItemSheet(); $("#itemBody").scrollTop = y; return; }
+      if (d.ivariant) { keepNote(); itemState.variant = d.ivariant; renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.spicy != null) { keepNote(); itemState.spicy = Number(d.spicy); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.mala) { keepNote(); itemState.mala = Number(d.mala); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
       if (d.salt) { keepNote(); itemState.salt = Number(d.salt); renderItemSheet(); $("#itemBody").scrollTop = y; return; }
@@ -1234,6 +1258,17 @@
   });
 
   document.addEventListener("change", async (e) => {
+    if (e.target.matches("[data-iextra]")) {
+      itemState.note = $("#iNote")?.value ?? itemState.note;
+      const id = e.target.dataset.iextra;
+      itemState.extras = itemState.extras.filter((extra) => extra !== id);
+      if (e.target.checked) itemState.extras.push(id);
+      const y = $("#itemBody").scrollTop;
+      renderItemSheet();
+      $("#itemBody").scrollTop = y;
+      $(`[data-iextra="${id}"]`)?.focus({ preventScroll: true });
+      return;
+    }
     if (e.target.id !== "slipInput") return;
     const file = e.target.files && e.target.files[0];
     const o = state.lastOrder;

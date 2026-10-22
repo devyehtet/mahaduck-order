@@ -125,6 +125,29 @@ window.MAHA_MENU = {
     { level: 5, name: "Extra hot", th: "เผ็ดสุด", my: "အစပ်ဆုံး", sub: "Fire!", img: "images/spice/level-5.webp" },
   ],
 
+  drinkExtras: [
+    { id: "addons", name: "Add-ons", th: "เพิ่มเติม", my: "ထပ်ဖြည့်ရန်", items: [
+      { id: "extra-shot", name: "Extra Shot", th: "เพิ่มช็อต", my: "ကော်ဖီ Shot ထပ်ထည့်", price: 15, coffeeOnly: true },
+      { id: "milk", name: "Milk", th: "นมสด", my: "နို့", price: 20 },
+      { id: "honey", name: "Honey", th: "น้ำผึ้ง", my: "ပျားရည်", price: 15 },
+    ] },
+    { id: "flavors", name: "Flavor Toppings", th: "ท็อปปิ้งรสชาติ", my: "အရသာ Topping", items: [
+      { id: "yogurt", name: "Yogurt", th: "โยเกิร์ต", my: "ဒိန်ချဉ်", price: 15 },
+      { id: "yuzu", name: "Yuzu", th: "ยูสุ", price: 15 },
+      { id: "kiwi", name: "Kiwi", th: "กีวี", price: 15 },
+      { id: "strawberry", name: "Strawberry", th: "สตรอว์เบอร์รี", price: 15 },
+      { id: "apple", name: "Apple", th: "แอปเปิล", price: 15 },
+      { id: "mango", name: "Mango", th: "มะม่วง", my: "သရက်သီး", price: 15 },
+      { id: "peach", name: "Peach", th: "พีช", price: 15 },
+      { id: "lychee", name: "Lychee", th: "ลิ้นจี่", price: 15 },
+    ] },
+    { id: "jellies", name: "Jelly & Pearl Toppings", th: "ท็อปปิ้งเยลลี่และไข่มุก", my: "Jelly နှင့် ပုလဲ Topping", items: [
+      { id: "konjac-pearl", name: "Konjac Pearl", th: "ไข่มุกบุก", price: 10 },
+      { id: "grass-jelly", name: "Grass Jelly", th: "เฉาก๊วย", price: 10 },
+      { id: "coconut-jelly", name: "Coconut Jelly", th: "วุ้นมะพร้าว", price: 10 },
+    ] },
+  ],
+
   // Ready-made dishes
   // =====================================================================
   // Website မှာ ပြမယ့် menu
@@ -198,6 +221,67 @@ window.MAHA_MENU = {
         { id: "rice-cake", name: "Japanese Fried Sweet Rice Cake", th: "โมจิทอดหวานญี่ปุ่น", price: 89, img: "images/snacks/snack-mochi.webp" },
         { id: "doughnuts", name: "Giant Crispy Doughnuts", th: "โดนัทกรอบยักษ์", price: 89, img: "images/snacks/snack-doughnut.webp" },
         { id: "rice", name: "Steamed Rice", th: "ข้าวสวย", price: 25, art: "rice" },
+      ],
+    },
+    {
+      id: "coffee", drinks: true,
+      title: { en: "Coffee", th: "กาแฟ", my: "ကော်ဖီ" },
+      items: [
+        { id: "moka-black-breeze", code: "C1", name: "Moka Black Breeze", drink: true, drinkGroup: "coffee", price: 55, variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55 },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 65 },
+        ] },
+        { id: "velvet-moka-latte", code: "C2", name: "Velvet Moka Latte", drink: true, drinkGroup: "coffee", price: 60, variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 60 },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 80 },
+        ] },
+        { id: "signature-moka-roast", code: "C3", name: "Signature Moka Roast", drink: true, drinkGroup: "coffee", price: 65, badge: "signature", variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 65 },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 85 },
+        ] },
+        { id: "moka-honey-citrus", code: "C4", name: "Moka Honey Citrus Brew", drink: true, drinkGroup: "coffee", price: 80, variants: [
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 80 },
+        ] },
+      ],
+    },
+    {
+      id: "yogurt", drinks: true,
+      title: { en: "Yogurt", th: "โยเกิร์ต", my: "ဒိန်ချဉ်" },
+      items: [
+        { id: "strawberry-swirl-oasis", code: "Y1", name: "Strawberry Swirl Oasis", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "golden-mango-velvet", code: "Y2", name: "Golden Mango Velvet", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "dragonfruit-paradise-chill", code: "Y3", name: "Dragonfruit Paradise Chill", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+      ],
+    },
+    {
+      id: "fruit-tea", drinks: true,
+      title: { en: "Fruit Tea", th: "ชาผลไม้", my: "သစ်သီးလက်ဖက်ရည်" },
+      items: [
+        { id: "grapefruit-ruby-glow", code: "F1", name: "Grapefruit Ruby Glow", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "sun-kissed-aloha-tea", code: "F2", name: "Sun-kissed Aloha Tea", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "sunburst-lemon-breeze", code: "F3", name: "Sunburst Lemon Breeze", drink: true, price: 95, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 95 }] },
+        { id: "signature-paradise-medley", code: "F4", name: "Signature Paradise Medley", drink: true, price: 115, badge: "signature", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 115 }] },
+        { id: "sunkist-sunrise-brew", code: "F5", name: "Sunkist Sunrise Brew", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "sunlit-mango-nectar", code: "F6", name: "Sunlit Mango Nectar", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "tropical-coconut-breeze", code: "F7", name: "Tropical Coconut Breeze", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "passionfruit-sunset-bloom", code: "F8", name: "Passionfruit Sunset Bloom", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+      ],
+    },
+    {
+      id: "sweet-treats", drinks: true,
+      title: { en: "Sweet & Treats", th: "เมนูหวาน", my: "Sweet & Treats" },
+      items: [
+        { id: "golden-amber-sugar-tea", code: "D1", name: "Golden Amber Sugar Tea", drink: true, price: 50, variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 50 },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 75 },
+        ] },
+        { id: "velvet-cocoa", code: "D2", name: "Velvet Cocoa", drink: true, price: 55, variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55 },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 80 },
+        ] },
+        { id: "choco-forest-shroom", code: "D3", name: "Choco Forest Shroom Velvet Cocoa", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "pink-sakura-shroom", code: "D4", name: "Pink Sakura Shroom Blossom Berry", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "taro-purple-shroom", code: "D5", name: "Taro Purple Shroom Purple Dream", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
       ],
     },
   ],

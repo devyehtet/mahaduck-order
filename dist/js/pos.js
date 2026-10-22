@@ -7,6 +7,7 @@
   const api = window.MahaAPI;
   const A = window.MahaAdmin;
   const { t, toast, money, esc } = A;
+  const core = window.MahaDuckCore;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -213,8 +214,12 @@
   function itemDialog() {
     const it = items[dlg.id];
     const meat = meatOf(it);
-    const unit = meat ? meat.price : it.price;
+    const unit = it.drink ? core.drinkSelection(MENU, it, dlg.variant, dlg.extras).price : meat ? meat.price : it.price;
     const parts = [];
+    if (it.drink) {
+      parts.push(`<h3 class="step-title">${t("drinkServing")}</h3>${chips("dvariant", it.variants.map((v) => [v.id, `${v.name} ${v.oz} oz · ${money(v.price)}`]), dlg.variant)}`);
+      core.drinkExtraGroups(MENU, it).forEach((group) => parts.push(`<fieldset class="drink-extra-group"><legend>${esc(core.localizeText(A.lang(), group))} <small>${t("optional")}</small></legend><div class="drink-extra-grid">${group.items.map((extra) => `<label class="drink-extra"><input type="checkbox" data-dextra="${extra.id}" ${dlg.extras.includes(extra.id) ? "checked" : ""} /><span>${esc(core.localizeText(A.lang(), extra))}</span><b>+${money(extra.price)}</b></label>`).join("")}</div></fieldset>`));
+    }
     if (it.meats) parts.push(`<h3 class="step-title">${t("chooseMeat")}</h3>${chips("dmeat", it.meats.map((m) => [m.id, `${m.name} ${money(m.price)}`]), meat.id)}`);
     if (it.soups) parts.push(`<h3 class="step-title">${t("chooseSoup")}</h3>${chips("dsoup", it.soups.map((x) => [x.id, x.name]), dlg.soup)}`);
     if (it.spicy) parts.push(`<h3 class="step-title">${t("spicyLevel")}</h3>${chips("dspicy", spiceList(true), dlg.spicy)}<h3 class="step-title">${t("malaLevel")}</h3>${chips("dmala", [1, 2, 3, 4, 5].map((n) => [n, n]), dlg.mala)}<h3 class="step-title">${t("saltLevel")}</h3>${chips("dsalt", saltList(), saltValue(dlg.salt))}`);
@@ -227,6 +232,14 @@
     const meat = meatOf(it);
     const sp = MENU.spicy.find((s) => s.level === dlg.spicy);
     const details = [];
+    const drink = it.drink ? core.drinkSelection(MENU, it, dlg.variant, dlg.extras) : null;
+    if (drink) {
+      details.push(`${it.code} · ${drink.variant.name} · ${drink.variant.oz} oz`);
+      core.drinkExtraGroups(MENU, it).forEach((group) => {
+        const extras = drink.extras.filter((extra) => group.items.some((x) => x.id === extra.id));
+        if (extras.length) details.push(`${group.name}: ${extras.map((extra) => extra.name).join(", ")}`);
+      });
+    }
     if (it.soups) details.push(`Soup: ${(it.soups.find((x) => x.id === dlg.soup) || it.soups[0]).name}`);
     if (it.spicy) {
       details.push(`Spicy ${dlg.spicy}${sp ? " (" + sp.name + ")" : " (not spicy)"} · Mala ${dlg.mala}`);
@@ -234,7 +247,7 @@
     }
     if (dlg.note) details.push(`“${dlg.note}”`);
     const name = meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name;
-    addLine({ key: it.id + "|" + name + "|" + details.join("|"), name, unit: meat ? meat.price : it.price, qty: 1, details });
+    addLine({ key: it.id + "|" + name + "|" + details.join("|"), name, unit: drink ? drink.price : meat ? meat.price : it.price, qty: 1, details });
     closeDlg();
   }
 
@@ -314,7 +327,7 @@
     if (d.pitem) {
       const it = items[d.pitem];
       if (it.set && SET) { dlg = { kind: "set", size: "S", meatPicks: [], vegPicks: [], picks: [], addons: [], taste: 1, spicy: 2, mala: 2, salt: 100, note: "" }; return setDialog(); }
-      if (it.meats || it.soups || it.spicy) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", spicy: 2, mala: 2, salt: 100, note: "" }; return itemDialog(); }
+      if (it.meats || it.soups || it.spicy || it.drink) { dlg = { kind: "item", id: it.id, meat: it.meats ? it.meats[0].id : "", soup: it.soups ? it.soups[0].id : "", variant: it.drink ? it.variants[0].id : "", extras: [], spicy: 2, mala: 2, salt: 100, note: "" }; return itemDialog(); }
       return addLine({ key: it.id, name: it.name, unit: it.price, qty: 1, details: [] });
     }
     if (d.ptype) { sale.type = d.ptype; return renderTicket(); }
@@ -353,6 +366,7 @@
     }
     if (d.dmeat) { keep(); dlg.meat = d.dmeat; return redraw(); }
     if (d.dsoup) { keep(); dlg.soup = d.dsoup; return redraw(); }
+    if (d.dvariant) { keep(); dlg.variant = d.dvariant; return redraw(); }
     if (d.dtaste) { keep(); dlg.taste = Number(d.dtaste); return redraw(); }
     if (d.dstyle) { keep(); dlg.style = d.dstyle; return redraw(); }
     if (d.dspicy != null) { keep(); dlg.spicy = Number(d.dspicy); return redraw(); }
@@ -364,6 +378,16 @@
     if (el.id === "donePrint") return A.printOrder(dlg.order);
   });
   $("#posDialog").addEventListener("click", (e) => { if (e.target.id === "posDialog") closeDlg(); });
+  $("#posDialog").addEventListener("change", (e) => {
+    if (!e.target.matches("[data-dextra]") || !dlg) return;
+    const id = e.target.dataset.dextra;
+    dlg.note = $("#dNote")?.value || "";
+    dlg.extras = dlg.extras.filter((extra) => extra !== id);
+    if (e.target.checked) dlg.extras.push(id);
+    const y = $("#posDlgBody").scrollTop;
+    itemDialog();
+    $("#posDlgBody").scrollTop = y;
+  });
 
   window.MahaPOS = {
     open() { renderMenu(); renderTicket(); },

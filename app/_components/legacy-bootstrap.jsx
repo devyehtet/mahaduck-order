@@ -19,6 +19,7 @@ const scripts = {
     "/legacy/settings/menu.js",
     "/legacy/js/api.js",
     "/legacy/js/i18n.js",
+    "/legacy/js/core.js",
     "/legacy/vendor/qrcode.js",
     "/legacy/js/admin.js",
   ],

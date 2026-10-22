@@ -423,6 +423,27 @@ dialog.sheet::backdrop { background: rgba(20, 12, 6, .55); backdrop-filter: blur
 .bowl-sum b { color: var(--ink); }
 
 /* Spicy pick */
+.grid.drinks { grid-template-columns: minmax(0, 1fr); align-items: start; }
+.card.card-drink { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; padding: 14px; border-radius: 8px; }
+.drink-code { font-weight: 800; font-size: 15px; line-height: 1.4; color: var(--red); padding-top: 2px; }
+.card-drink .card-body { padding: 0; min-width: 0; }
+.card-drink .card-body h3 { overflow-wrap: anywhere; }
+.card-drink .badge { position: static; grid-column: 1 / -1; justify-self: start; }
+.card-drink .size-chips { margin-top: 6px; }
+.card-drink .size-chips button { border-radius: 8px; font-size: 12px; padding: 6px 8px; }
+.card-drink .card-foot { margin-top: 8px; }
+.opt-grid.drink-variants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.drink-extra-group { border: 0; padding: 0; margin: 20px 0 0; min-width: 0; }
+.drink-extra-group legend { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.drink-extra-group legend small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.drink-extra-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.drink-extra { display: flex; align-items: center; gap: 8px; padding: 10px; min-height: 48px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; font-size: 13px; }
+.drink-extra input { flex: none; width: 17px; height: 17px; accent-color: var(--green); }
+.drink-extra span { min-width: 0; overflow-wrap: anywhere; }
+.drink-extra b { flex: none; margin-left: auto; font-size: 12px; color: var(--green); }
+.drink-extra:has(input:checked) { border-color: var(--green); background: #edf7ef; }
+@media (min-width: 740px) { .grid.drinks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .grid.drinks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .spice-pick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .spice-opt {
   border: 2px solid var(--line); background: var(--paper); border-radius: 14px; padding: 0 0 6px; overflow: hidden;
