@@ -207,6 +207,9 @@
 
     // Customer (online) order. Staff POS orders use createStaffOrder.
     async createOrder(order, staff = false) {
+      order = { ...order, ...window.MahaOrderTotals.orderTotals(order.subtotal, {
+        source: staff ? "pos" : "online", order_type: order.order_type, delivery_fee: order.delivery_fee,
+      }) };
       if (!live) {
         return demo("/orders", { method: "POST", body: { order, staff } }, () => localCreateOrder(order, staff));
       }
@@ -303,13 +306,28 @@
     async isSignedIn() { return !live || Boolean(await session()); },
     async staffEmail() { const s = await session(); return s && s.user ? s.user.email : ""; },
 
-    async listOrders(sinceISO) {
+    async listOrders(sinceISO, untilISO) {
+      const params = new URLSearchParams();
+      if (sinceISO) params.set("since", sinceISO);
+      if (untilISO) params.set("until", untilISO);
       if (!live) {
-        const path = "/orders" + (sinceISO ? `?since=${encodeURIComponent(sinceISO)}` : "");
-        return demo(path, {}, () => store.get(DEMO_ORDERS, []).filter((o) => !sinceISO || o.created_at >= sinceISO));
+        const path = "/orders" + (params.size ? "?" + params.toString() : "");
+        return demo(path, {}, () => store.get(DEMO_ORDERS, []).filter((o) =>
+          (!sinceISO || Date.parse(o.created_at) >= Date.parse(sinceISO)) && (!untilISO || Date.parse(o.created_at) < Date.parse(untilISO))));
       }
-      const q = `/rest/v1/orders?select=*&order=created_at.desc&limit=500` + (sinceISO ? `&created_at=gte.${encodeURIComponent(sinceISO)}` : "");
-      return rest(q, { token: await token() });
+      const query = new URLSearchParams({ select: "*", order: "created_at.desc,id.desc", limit: "500" });
+      if (sinceISO) query.append("created_at", "gte." + sinceISO);
+      if (untilISO) query.append("created_at", "lt." + untilISO);
+      const auth = await token();
+      const orders = new Map();
+      // Read every page so busy days and historical ranges are not silently truncated.
+      for (let offset = 0; ; offset += 500) {
+        query.set("offset", String(offset));
+        const page = await rest("/rest/v1/orders?" + query.toString(), { token: auth });
+        page.forEach((order) => orders.set(order.id, order));
+        if (page.length < 500) break;
+      }
+      return [...orders.values()];
     },
 
     async updateOrder(id, patch) {

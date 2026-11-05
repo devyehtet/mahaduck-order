@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { randomBytes, randomUUID } from "node:crypto";
+import accounting from "../../../dist/js/order-totals.cjs";
 
 const STORE_PATH = process.env.MAHA_DEMO_STORE || join(tmpdir(), "maha-duck-demo-store.json");
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -77,6 +78,18 @@ export async function readDemoStore() {
   return readStore();
 }
 
+export function ordersInRange(orders, since, until) {
+  const start = since ? Date.parse(since) : -Infinity;
+  const end = until ? Date.parse(until) : Infinity;
+  if (Number.isNaN(start) || Number.isNaN(end) || start >= end) {
+    throw Object.assign(new Error("Invalid order date range"), { status: 400 });
+  }
+  return orders.filter((order) => {
+    const time = Date.parse(order.created_at);
+    return time >= start && time < end;
+  }).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
 export function withDemoStore(fn) {
   chain = chain.then(async () => {
     const state = await readStore();
@@ -142,10 +155,11 @@ export function normalizeOrder(input, staff = false) {
   const items = normalizeItems(input.items);
   const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
   const deliveryFee = type === "delivery" && input.delivery_fee != null ? int(input.delivery_fee, 0) : null;
-  const total = subtotal + (deliveryFee || 0);
+  const totals = accounting.orderTotals(subtotal, { source: staff ? "pos" : "online", order_type: type, delivery_fee: deliveryFee });
+  const total = totals.total;
   const paymentStatus = staff && PAYMENT_STATUSES.has(input.payment_status) ? input.payment_status : "unpaid";
   const status = staff && STATUSES.has(input.status) ? input.status : staff ? "preparing" : "new";
-  const cashReceived = input.cash_received == null ? null : int(input.cash_received, 0);
+  const cashReceived = input.cash_received == null ? null : accounting.toSatang(input.cash_received) / 100;
 
   if (cashReceived != null && paymentStatus === "paid" && cashReceived < total) {
     throw Object.assign(new Error("Cash received is lower than order total"), { status: 400 });
@@ -164,7 +178,7 @@ export function normalizeOrder(input, staff = false) {
     items,
     subtotal,
     delivery_fee: deliveryFee,
-    total,
+    ...totals,
     lang: text(input.lang, 8) || "en",
     status,
     source: staff ? "pos" : "online",

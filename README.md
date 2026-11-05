@@ -32,6 +32,12 @@ During the route migration, the React pages render the existing page structure a
 
 Shop settings and menu data remain in `dist/settings/config.js` and `dist/settings/menu.js`. Supabase setup instructions are in `docs/SETUP-GUIDE-MY.md`.
 
+## Online Orders And VAT
+
+Online pickup/delivery orders add 7% VAT to the menu subtotal, rounded once per order to two decimal places. Table QR dine-in and staff POS orders are unchanged. The cart, saved order, counter, and receipt use the same total. Online checkout currently accepts cash only; QR payment is disabled, including on previously saved PromptPay orders. Table QR codes remain available for ordering.
+
+Before deploying this update to an existing Supabase database, run `supabase/migrations/20261028_online_qr_vat.sql` in that project's SQL Editor. It adds VAT fields and satang-precision totals without retaxing historical orders. New databases can use `supabase/schema.sql`. Run `npm test`, `npm run check`, and `npm run build` to verify the app.
+
 ## Ordering From Other Networks
 
 `localhost` works only on the same computer. Same Wi-Fi devices can use the computer's LAN URL, for example `http://192.168.x.x:3000`, but phones on mobile data or customers outside the shop need a public URL.

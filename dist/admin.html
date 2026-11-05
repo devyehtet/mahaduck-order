@@ -77,12 +77,33 @@
         <button type="button" role="tab" data-view="tables" aria-selected="false" data-i18n="tables">Table QR</button>
       </nav>
 
+      <section class="history-toolbar" id="historyToolbar" hidden aria-label="Order history">
+        <label class="range"><span data-i18n="range">Show</span>
+          <select id="historyRangeSel">
+            <option value="today" data-i18n="rToday">Today</option>
+            <option value="yesterday" data-i18n="rYesterday">Yesterday</option>
+            <option value="custom" data-i18n="rCustom">Choose date</option>
+            <option value="7" data-i18n="r7">7 days</option>
+            <option value="30" data-i18n="r30">30 days</option>
+          </select>
+        </label>
+        <div class="history-date" id="historyDateControls">
+          <button class="icon-btn history-step" type="button" id="historyPrev">&#8592;</button>
+          <label class="range"><span data-i18n="historyDate">Date</span><input type="date" id="historyDate" /></label>
+          <button class="icon-btn history-step" type="button" id="historyNext">&#8594;</button>
+        </div>
+        <span class="history-summary" id="historySummary"></span>
+        <span class="history-status" id="historyStatus" role="status" aria-live="polite"></span>
+        <button class="btn btn-line btn-sm" id="historyRetry" type="button" data-i18n="historyRetry" hidden>Retry</button>
+      </section>
+
       <main class="admin-main" id="customerView" hidden>
         <section class="stats" id="customerStats"></section>
         <div class="toolbar">
           <div class="filters" id="customerFilters" role="tablist"></div>
         </div>
         <div class="board" id="customerBoard"></div>
+        <nav class="history-pager" id="customerPager" aria-label="Order pages" hidden></nav>
       </main>
 
       <main class="admin-main" id="counterView">
@@ -97,9 +118,6 @@
 
         <div class="toolbar">
           <div class="filters" id="filters" role="tablist"></div>
-          <label class="range"><span data-i18n="range">Show</span>
-            <select id="rangeSel"><option value="today" data-i18n="rToday">Today</option><option value="7" data-i18n="r7">7 days</option><option value="30" data-i18n="r30">30 days</option></select>
-          </label>
         </div>
 
         <div class="board" id="board"></div>
@@ -124,11 +142,6 @@
       <main class="admin-main" id="dailyView" hidden>
         <div class="section-head"><h2 data-i18n="dailyTitle">Orders by day</h2><p data-i18n="dailySub"></p></div>
         <section class="stats" id="dailyStats"></section>
-        <div class="toolbar">
-          <label class="range"><span data-i18n="range">Show</span>
-            <select id="dailyRangeSel"><option value="today" data-i18n="rToday">Today</option><option value="7" data-i18n="r7">7 days</option><option value="30" data-i18n="r30">30 days</option></select>
-          </label>
-        </div>
         <div class="daily-board" id="dailyBoard"></div>
       </main>
 
@@ -144,6 +157,17 @@
         <div class="qr-grid" id="qrGrid"></div>
       </main>
     </div>
+
+    <dialog class="sheet" id="orderDetails" aria-labelledby="orderDetailsTitle">
+      <div class="sheet-inner">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-detail-close aria-label="Close">&#215;</button>
+          <h2 id="orderDetailsTitle"></h2>
+        </header>
+        <div class="sheet-body" id="orderDetailsBody"></div>
+        <footer class="sheet-foot" id="orderDetailsFoot"></footer>
+      </div>
+    </dialog>
 
     <dialog class="sheet" id="slipDialog" aria-labelledby="slipTitle">
       <div class="sheet-inner">
@@ -163,6 +187,7 @@
 
     <script src="settings/config.js"></script>
     <script src="settings/menu.js"></script>
+    <script src="js/order-totals.cjs"></script>
     <script src="js/api.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/core.js"></script>

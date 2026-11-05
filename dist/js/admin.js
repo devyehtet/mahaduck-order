@@ -5,12 +5,13 @@
   const CFG = window.MAHA_CONFIG;
   const MENU = window.MAHA_MENU || {};
   const api = window.MahaAPI;
+  const core = window.MahaDuckCore;
   const S = api.store;
   const DEFAULT_SET_STOCK = 20;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const money = (n) => CFG.currency + Number(n || 0).toLocaleString("en-US");
+  const money = (n) => core.money(n, CFG.currency);
   const staffLogin = CFG.staffLogin || {};
   const defaultStaffLogin = String(staffLogin.username || staffLogin.email || "info@yehtet.com").trim();
   function safeMapLink(value) {
@@ -34,14 +35,22 @@
     }
   }
 
-  const initialView = new URLSearchParams(location.search).get("view");
+  const initialParams = new URLSearchParams(location.search);
+  const initialView = initialParams.get("view");
+  const initialDate = core.isDayKey(initialParams.get("date")) && initialParams.get("date") <= core.shopDayKey() ? initialParams.get("date") : "";
+  const initialRange = initialView === "kitchen" ? "today" : initialDate ? "custom" : ["yesterday", "7", "30"].includes(initialParams.get("range")) ? initialParams.get("range") : "today";
   const state = {
     lang: S.get("mahaduck-admin-lang", "my"),
     orders: [],
-    filter: "active",
+    filter: initialRange === "today" ? "active" : "all",
     source: "all",
     table: "all",
-    range: "today",
+    range: initialRange,
+    date: initialDate || core.shopDayKey(),
+    customerPage: 1,
+    loading: false,
+    loadingKey: "",
+    loadError: false,
     known: null,
     sound: S.get("mahaduck-admin-sound", true),
     autoPrint: S.get("mahaduck-admin-autoprint", false),
@@ -136,14 +145,29 @@
     if (m < 60) return `${m} ${t("min")} ${t("ago")}`;
     const h = Math.floor(m / 60);
     if (h < 24) return `${h} ${t("hr")} ${m % 60} ${t("min")} ${t("ago")}`;
-    return new Date(iso).toLocaleDateString();
+    return new Date(iso).toLocaleDateString(undefined, { timeZone: core.shopTimeZone });
   }
-  const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  function rangeStart() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    if (state.range !== "today") d.setDate(d.getDate() - (Number(state.range) - 1));
-    return d.toISOString();
+  const clock = (iso) => new Date(iso).toLocaleTimeString([], { timeZone: core.shopTimeZone, hour: "2-digit", minute: "2-digit" });
+  const selectedRange = () => core.orderDateRange(state.range, state.date);
+  function renderHistoryControls() {
+    const bounds = selectedRange();
+    const day = $("#historyDate");
+    $("#historyToolbar").hidden = !["customer", "counter", "daily"].includes(state.view);
+    $("#historyToolbar").setAttribute("aria-label", t("dailyTitle"));
+    $("#historyRangeSel").value = state.range;
+    $("#historyDateControls").hidden = ["7", "30"].includes(state.range);
+    if (document.activeElement !== day) day.value = bounds.endDay;
+    day.max = core.shopDayKey();
+    $("#historyNext").disabled = bounds.endDay >= day.max;
+    [["historyPrev", "historyPrev"], ["historyNext", "historyNext"]].forEach(([id, key]) => {
+      $("#" + id).title = t(key);
+      $("#" + id).setAttribute("aria-label", t(key));
+    });
+    $("#historySummary").textContent = bounds.startDay === bounds.endDay ? dayLabel(bounds.endDay) : `${dayLabel(bounds.startDay)} - ${dayLabel(bounds.endDay)}`;
+    $("#historyStatus").textContent = state.loadError ? t("historyError") : state.loading ? t("historyLoading") : "";
+    $("#historyStatus").classList.toggle("error", state.loadError);
+    $("#historyRetry").hidden = !state.loadError;
+    $("#historyRetry").disabled = state.loading;
   }
 
   // ---------- i18n ----------
@@ -158,10 +182,21 @@
   }
 
   // ---------- data ----------
+  let loadVersion = 0;
   async function load() {
+    const bounds = selectedRange();
+    const key = bounds.since + "|" + bounds.until;
+    if (state.loading && state.loadingKey === key) return;
+    const version = ++loadVersion;
+    const liveToday = state.range === "today";
+    state.loading = true;
+    state.loadingKey = key;
+    state.loadError = false;
+    renderHistoryControls();
     try {
-      const rows = (await api.listOrders(rangeStart())).filter(isOnlineOrder);
-      const fresh = rows.filter((o) => o.status === "new" && state.known && !state.known.has(o.id));
+      const rows = (await api.listOrders(bounds.since, bounds.until)).filter(isOnlineOrder);
+      if (version !== loadVersion) return;
+      const fresh = rows.filter((o) => liveToday && o.status === "new" && state.known && !state.known.has(o.id));
       state.known = new Set(rows.map((o) => o.id));
       state.payState = new Map(rows.map((o) => [o.id, o.payment_status || "unpaid"]));
       state.orders = rows;
@@ -170,10 +205,14 @@
         toast(`${t("newOrderToast")} ${fresh.map((o) => isTableOrder(o) ? `${tableLabel(o)} · ${o.code}` : o.code).join(", ")}`);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }
-      state.orders = rows;
+      state.loading = false;
       render();
       if (fresh.length && state.autoPrint) fresh.forEach((o) => printOrder(o));
     } catch (e) {
+      if (version !== loadVersion) return;
+      state.loading = false;
+      state.loadError = true;
+      render();
       if (e.status === 401) { api.signOut(); return showLogin(); }
       console.error(e);
     }
@@ -238,35 +277,67 @@
     if (posView) posView.hidden = true;
     document.body.classList.remove("pos-mode");
     document.body.classList.toggle("kitchen-mode", state.view === "kitchen");
+    renderHistoryControls();
   }
 
   function renderCustomerView() {
-    const list = [...state.orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 12);
+    const list = [...state.orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const ready = list.filter((o) => o.status === "ready");
-    const readyText = ready.length ? `${ready.length} orders ready for pickup` : "No order ready yet";
     const stats = document.getElementById("customerStats");
     if (stats) {
       stats.innerHTML = [
-        ["Customer view", list.length, ""],
-        ["Ready", ready.length, ready.length ? "green" : ""],
-        ["Preparing", list.filter((o) => o.status === "preparing").length, "red"],
+        [t("orders"), list.length, ""],
+        [t("f_ready"), ready.length, ready.length ? "green" : ""],
+        [t("f_preparing"), list.filter((o) => o.status === "preparing").length, "red"],
       ].map(([l, v, c]) => `<div class="stat ${c}"><span>${esc(l)}</span><strong>${esc(v)}</strong></div>`).join("");
     }
 
     const customerFilters = document.getElementById("customerFilters");
     if (customerFilters) {
-      if (!(["all", "new", "preparing", "ready", "completed"].includes(state.filter))) state.filter = "all";
-      customerFilters.innerHTML = ["all", "new", "preparing", "ready", "completed"].map((status) => {
+      if (!(["all", "new", "preparing", "ready", "completed", "cancelled"].includes(state.filter))) state.filter = "all";
+      customerFilters.innerHTML = ["all", "new", "preparing", "ready", "completed", "cancelled"].map((status) => {
         const count = status === "all" ? list.length : list.filter((o) => o.status === status).length;
-        return `<button type="button" role="tab" aria-selected="${state.filter === status}" data-filter="${status}">${status === "all" ? "All" : t("f_" + status)} <b>${count}</b></button>`;
+        return `<button type="button" role="tab" aria-selected="${state.filter === status}" data-filter="${status}">${t("f_" + status)} <b>${count}</b></button>`;
       }).join("");
     }
 
     const board = document.getElementById("customerBoard");
     if (!board) return;
     const rows = state.filter === "all" || !state.filter ? list : list.filter((o) => o.status === state.filter);
+    const pages = Math.max(1, Math.ceil(rows.length / 24));
+    state.customerPage = Math.min(state.customerPage, pages);
+    const pageRows = rows.slice((state.customerPage - 1) * 24, state.customerPage * 24);
     board.className = "board list";
-    board.innerHTML = rows.length ? rows.map((o) => `<article class="order st-${o.status} ${o.status === "ready" ? "late" : ""}"><header><div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div><time>${clock(o.created_at)}</time></header><div class="meta">${sourceChip(o)}${typeChip(o)}</div><div class="who"><strong>${esc(customerName(o))}</strong>${o.table_no ? `<span>Table ${esc(o.table_no)}</span>` : ""}</div><div class="ototal"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>${o.status === "ready" ? `<p class="onote">✅ Ready for pickup / delivery</p>` : ""}</article>`).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${readyText}</p></div>`;
+    board.innerHTML = pageRows.length ? pageRows.map((o) => `<article class="order st-${o.status}">
+      <header><div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div><time datetime="${esc(o.created_at)}">${esc(dayLabel(dayKey(o.created_at)))} · ${clock(o.created_at)}</time></header>
+      <div class="meta">${sourceChip(o)}${typeChip(o)}</div><div class="who"><strong>${esc(customerName(o))}</strong></div>
+      ${(o.items || []).length ? `<ul class="history-items">${o.items.map((item) => `<li>${esc(item.qty)} × ${esc(item.name)}</li>`).join("")}</ul>` : ""}
+      <div class="ototal"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>
+      <footer><button class="btn btn-line btn-sm" type="button" data-detail="${esc(o.id)}" aria-label="${esc(t("historyView") + " " + o.code)}">${t("historyView")}</button></footer>
+    </article>`).join("") : `<div class="empty"><img src="images/mascot/duck-1.webp" alt="" /><p>${state.loading ? t("historyLoading") : state.loadError ? t("historyError") : t("noDaily")}</p></div>`;
+    const pager = $("#customerPager");
+    pager.hidden = pages <= 1;
+    pager.innerHTML = `<button class="icon-btn history-step" type="button" data-history-page="-1" title="${esc(t("historyPrevPage"))}" aria-label="${esc(t("historyPrevPage"))}" ${state.customerPage <= 1 ? "disabled" : ""}>&#8592;</button><span>${state.customerPage} / ${pages} · ${rows.length} ${t("orders")}</span><button class="icon-btn history-step" type="button" data-history-page="1" title="${esc(t("historyNextPage"))}" aria-label="${esc(t("historyNextPage"))}" ${state.customerPage >= pages ? "disabled" : ""}>&#8594;</button>`;
+  }
+
+  let detailOrder = null;
+  function openOrderDetails(id) {
+    const order = state.orders.find((entry) => entry.id === id);
+    if (!order) return;
+    detailOrder = order;
+    $("#orderDetailsTitle").textContent = `${t("orderCode")} ${order.code}`;
+    $("#orderDetailsBody").innerHTML = `<div class="meta">${sourceChip(order)}${typeChip(order)}<span class="pill ${esc(order.status)}">${t("st_" + order.status)}</span></div>
+      <time datetime="${esc(order.created_at)}">${esc(dayLabel(dayKey(order.created_at)))} · ${clock(order.created_at)}</time>
+      <div class="history-details-who"><strong>${esc(customerName(order))}</strong>${order.phone ? `<span>${esc(order.phone)}</span>` : ""}${order.address ? `<span>${esc(order.address)}</span>` : ""}</div>
+      ${(order.items || []).length ? `<ul class="items">${order.items.map((item) => `<li><b>${esc(item.qty)}×</b><div><span>${esc(item.name)}</span>${(Array.isArray(item.details) ? item.details : []).map((detail) => `<small>${esc(detail)}</small>`).join("")}</div><em>${money(item.line_total)}</em></li>`).join("")}</ul>` : `<p class="hint">${t("historyNoItems")}</p>`}
+      ${order.note ? `<p class="onote">${esc(order.note)}</p>` : ""}
+      <div class="totals"><div><span>${t("subtotal")}</span><span>${money(order.subtotal)}</span></div>
+        ${order.vat_rate ? `<div><span>${t("vat")} ${order.vat_rate}%</span><span>${money(order.vat_amount)}</span></div>` : ""}
+        ${order.order_type === "delivery" ? `<div><span>${t("deliveryFee")}</span><span>${order.delivery_fee == null ? t("byShop") : money(order.delivery_fee)}</span></div>` : ""}
+        <div class="grand"><span>${t("total")}</span><b>${money(order.total)}</b></div></div>
+      <p class="hint">${t("payment")}: ${esc(t(order.payment || "cash"))} · ${esc(t("pay_" + (order.payment_status || "unpaid")))}</p>`;
+    $("#orderDetailsFoot").innerHTML = `<button class="btn btn-line" type="button" data-detail-close>${t("back")}</button><button class="btn btn-green btn-grow" type="button" data-print-detail>${t("printReceipt")}</button>`;
+    $("#orderDetails").showModal();
   }
 
   function renderKitchenView() {
@@ -332,12 +403,11 @@
   }
 
   function dayKey(iso) {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return core.shopDayKey(iso);
   }
   function dayLabel(key) {
     const locale = state.lang === "th" ? "th-TH" : state.lang === "my" ? "en-GB" : "en-US";
-    return new Date(`${key}T00:00:00`).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    return new Date(`${key}T12:00:00+07:00`).toLocaleDateString(locale, { timeZone: core.shopTimeZone, weekday: "short", day: "numeric", month: "short", year: "numeric" });
   }
   function renderDailyView() {
     const valid = state.orders.filter((o) => o.status !== "cancelled");
@@ -363,7 +433,7 @@
       const good = orders.filter((o) => o.status !== "cancelled");
       const revenue = good.reduce((sum, o) => sum + (o.total || 0), 0);
       const rows = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((o) => `<li>
-        <span><b>${esc(o.code)}</b><small>${clock(o.created_at)} · ${esc(isTableOrder(o) ? tableLabel(o) : customerName(o))}</small></span>
+        <span><button class="daily-order-link" type="button" data-detail="${esc(o.id)}" aria-label="${esc(t("historyView") + " " + o.code)}"><b>${esc(o.code)}</b></button><small>${clock(o.created_at)} · ${esc(isTableOrder(o) ? tableLabel(o) : customerName(o))}</small></span>
         <em class="${o.status}">${t("st_" + o.status)}</em><strong>${money(o.total)}</strong>
       </li>`).join("");
       return `<article class="daily-card"><header><div><h3>${esc(dayLabel(key))}</h3><p>${orders.length} ${t("dailyOrders")} · ${t("dailyNet")} ${money(revenue)}</p></div><strong>${money(revenue)}</strong></header><ul>${rows}</ul></article>`;
@@ -412,16 +482,12 @@
   }
 
   function render() {
+    renderHistoryControls();
     renderSourceFilters();
     const orders = counterOrders();
     renderStats("stats", orders, "Orders");
     renderStats("customerStats", state.orders, "Customer");
     renderStats("kitchenStats", state.orders, "Kitchen");
-    const rangeSel = $("#rangeSel");
-    const dailyRangeSel = $("#dailyRangeSel");
-    if (rangeSel) rangeSel.value = state.range;
-    if (dailyRangeSel) dailyRangeSel.value = state.range;
-
     const valid = state.orders.filter((o) => o.status !== "cancelled");
     const revenue = valid.reduce((n, o) => n + (o.total || 0), 0);
     const active = orders.filter((o) => ACTIVE.includes(o.status)).length;
@@ -469,6 +535,7 @@
     if (!o) return;
     slipOrderId = id;
     const dlg = $("#slipDialog");
+    dlg.classList.remove("confirm-payment");
     $("#slipTitle").textContent = `${t("slipTitle")} · ${o.code}`;
     $("#slipBody").innerHTML = `<div class="slip-amount"><span>${t("total")}</span><strong>${money(o.total)}</strong></div>
       <p class="slip-who">${esc(customerName(o))} ${o.phone ? "· " + esc(o.phone) : ""} · ${clock(o.created_at)}</p>
@@ -485,7 +552,12 @@
     }
   }
   function renderSlipFoot(o) {
-    $("#slipFoot").innerHTML = `<button class="btn btn-line btn-grow" type="button" data-close>${t("back")}</button>`;
+    $("#slipFoot").innerHTML = `<button class="btn btn-line btn-grow" type="button" data-close>${t("back")}</button>${paymentConfirmButton(o)}`;
+  }
+
+  function paymentConfirmButton(o) {
+    if (o.payment !== "promptpay" || o.payment_status === "paid" || o.status === "cancelled") return "";
+    return `<button class="btn btn-sm btn-green" type="button" data-paid="${esc(o.id)}" ${state.busy.has(o.id) ? "disabled" : ""}>${t("markPaid")}</button>`;
   }
 
   function card(o) {
@@ -498,9 +570,9 @@
     return `<article class="order st-${o.status} ${late ? "late" : ""}" data-id="${o.id}">
       <header>
         <div><strong class="code">${esc(o.code)}</strong> <span class="pill ${o.status}">${t("st_" + o.status)}</span></div>
-        <time title="${new Date(o.created_at).toLocaleString()}">${clock(o.created_at)} · ${since(o.created_at)}</time>
+        <time title="${new Date(o.created_at).toLocaleString(undefined, { timeZone: core.shopTimeZone })}">${clock(o.created_at)} · ${since(o.created_at)}</time>
       </header>
-      <div class="meta">${sourceChip(o)}${typeChip(o)}</div>
+      <div class="meta">${sourceChip(o)}${typeChip(o)}${o.payment === "promptpay" ? `<span class="chip pay ps-${esc(o.payment_status || "unpaid")}">QR · ${t("pay_" + (o.payment_status || "unpaid"))}</span>` : ""}</div>
       <div class="who">
         <strong>${esc(customerName(o))}</strong>
         ${o.phone ? `<a href="tel:${esc(o.phone.replace(/[^\d+]/g, ""))}" class="tel">${esc(o.phone)}</a>` : ""}
@@ -510,8 +582,11 @@
       ${o.note ? `<p class="onote">“${esc(o.note)}”</p>` : ""}
       ${o.status === "out_for_delivery" ? `<p class="delivery-progress"><strong>${esc(o.delivery_provider || t("deliveryProvider"))}</strong>${o.delivery_started_at ? `<small>${new Date(o.delivery_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>` : ""}</p>` : ""}
       ${o.order_type === "delivery" && o.delivery_fee != null ? `<div class="ofee"><span>${t("subtotal")} ${money(o.subtotal)}</span><span>+ ${t("deliveryFee")} ${money(o.delivery_fee)}</span></div>` : ""}
+      ${o.vat_rate ? `<div class="ofee"><span>${t("subtotal")} ${money(o.subtotal)}</span><span>+ ${t("vat")} ${o.vat_rate}% ${money(o.vat_amount)}</span></div>` : ""}
       <div class="ototal"><span>${t("total")}${o.order_type === "delivery" && o.delivery_fee == null ? ` <small>(+ ${t("deliveryFee")})</small>` : ""}</span><strong>${money(o.total)}</strong></div>
       <footer>
+        ${o.has_slip ? `<button class="btn btn-sm btn-slip" type="button" data-slip="${esc(o.id)}">${t("viewSlip")}</button>` : ""}
+        ${paymentConfirmButton(o)}
         ${dispatchReady ? `<label class="delivery-start"><span>${t("deliveryProvider")}</span><input type="text" maxlength="80" value="${esc(o.delivery_provider || "")}" placeholder="${esc(t("deliveryProviderPh"))}" data-delivery-provider /></label><button class="btn btn-sm btn-green grow" type="button" data-set="out_for_delivery" data-dispatch ${busy}>${t("a_startDelivery")}</button>` : ""}
         ${next ? `<button class="btn btn-sm ${o.status === "new" ? "btn-red" : "btn-green"} grow" type="button" data-set="${next[0]}" ${busy}>${t(next[1])}</button>` : ""}
         ${["completed", "cancelled"].includes(o.status) ? `<button class="btn btn-sm btn-line" type="button" data-set="preparing" ${busy}>${t("a_undo")}</button>` : ""}
@@ -558,10 +633,66 @@
     renderInventoryView();
   }
 
-  function setRange(value) {
+  function confirmPayment(id) {
+    const order = state.orders.find((entry) => entry.id === id);
+    if (!order || order.payment !== "promptpay" || order.payment_status === "paid" || order.status === "cancelled" || state.busy.has(id)) return;
+    slipOrderId = id;
+    const dialog = $("#slipDialog");
+    dialog.classList.add("confirm-payment");
+    $("#slipTitle").textContent = `${t("payment")} · ${order.code}`;
+    $("#slipBody").innerHTML = `<div class="slip-amount"><span>${t("total")}</span><strong>${money(order.total)}</strong></div>
+      ${CFG.promptpayName ? `<p class="slip-who">${t("payTo")}: <strong>${esc(CFG.promptpayName)}</strong></p>` : ""}
+      <p class="hint" style="margin-top:14px">${t("slipCheck")}</p>`;
+    $("#slipFoot").innerHTML = `<button class="btn btn-line btn-grow" type="button" data-close>${t("back")}</button><button class="btn btn-green" type="button" data-confirm-paid="${esc(id)}">${t("confirmReceived")}</button>`;
+    if (!dialog.open) dialog.showModal();
+  }
+
+  async function savePayment(id) {
+    const order = state.orders.find((entry) => entry.id === id);
+    if (slipOrderId !== id || !order || order.payment !== "promptpay" || order.payment_status === "paid" || order.status === "cancelled" || state.busy.has(id)) return;
+    state.busy.add(id);
+    const confirmButton = $("#slipFoot [data-confirm-paid]");
+    if (confirmButton) confirmButton.disabled = true;
+    render();
+    try {
+      await api.updateOrder(id, { payment_status: "paid" });
+      await load();
+      if (slipOrderId === id) { slipOrderId = null; $("#slipDialog").close(); }
+      toast(t("paidOk"));
+    } catch (error) {
+      toast(error.message || t("errSend"));
+    } finally {
+      state.busy.delete(id);
+      if (confirmButton) confirmButton.disabled = false;
+      render();
+    }
+  }
+
+  function setRange(value, day = selectedRange().endDay) {
+    if (!["today", "yesterday", "custom", "7", "30"].includes(value)) return;
+    if (value === "custom" && (!core.isDayKey(day) || day > core.shopDayKey())) {
+      toast(t("historyInvalidDate"));
+      $("#historyDate").value = selectedRange().endDay;
+      renderHistoryControls();
+      return;
+    }
+    loadVersion += 1;
     state.range = value;
+    state.date = day;
+    state.customerPage = 1;
+    state.orders = [];
     state.known = null;
+    state.loading = false;
+    state.loadError = false;
+    if (value !== "today") state.filter = "all";
+    const url = new URL(location.href);
+    url.searchParams.delete("range");
+    url.searchParams.delete("date");
+    if (value === "custom") url.searchParams.set("date", day);
+    else if (value !== "today") url.searchParams.set("range", value);
+    history.replaceState({}, "", url);
     load();
+    render();
   }
 
   function setPage(css) {
@@ -578,7 +709,7 @@
       <hr/>
       <p class="xl">${typeLine}</p>
       <p class="big">${esc(o.code)}${isTableOrder(o) ? " · TABLE QR" : isFacebookOrder(o) ? " · FACEBOOK" : o.source === "pos" ? " · POS" : ""}</p>
-      <p>${new Date(o.created_at).toLocaleString()}</p>
+      <p>${new Date(o.created_at).toLocaleString(undefined, { timeZone: core.shopTimeZone })}</p>
       <p>${esc(customerName(o))} ${esc(o.phone || "")}</p>
       ${o.address ? `<p>${esc(o.address)}</p>` : ""}
       <hr/>
@@ -586,8 +717,10 @@
       <hr/>
       ${o.note ? `<p class="note">NOTE: ${esc(o.note)}</p><hr/>` : ""}
       <div class="row"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
+      ${o.vat_rate ? `<div class="row"><span>VAT ${o.vat_rate}%</span><span>${money(o.vat_amount)}</span></div>` : ""}
       ${o.order_type === "delivery" ? `<div class="row"><span>Delivery</span><span>${o.delivery_fee == null ? "-" : money(o.delivery_fee)}</span></div>` : ""}
       <div class="row big"><span>TOTAL</span><span>${money(o.total)}</span></div>
+      ${o.payment === "promptpay" ? `<p>PromptPay / QR · ${esc(t("pay_" + (o.payment_status || "unpaid")))}</p>` : ""}
       <hr/><p class="c">${esc(CFG.receiptFooter || "Thank you!")}</p>
     </div>`;
   }
@@ -727,7 +860,13 @@
     if (!el) return;
     const d = el.dataset;
     if (d.lang) { state.lang = d.lang; S.set("mahaduck-admin-lang", d.lang); return applyLang(); }
-    if (d.filter) { state.filter = d.filter; return render(); }
+    if (d.filter) { state.filter = d.filter; state.customerPage = 1; return render(); }
+    if (d.detail) return openOrderDetails(d.detail);
+    if ("detailClose" in d) { detailOrder = null; return $("#orderDetails").close(); }
+    if ("printDetail" in d && detailOrder) return printOrder(detailOrder);
+    if (d.historyPage) { state.customerPage = Math.max(1, state.customerPage + Number(d.historyPage)); renderCustomerView(); $("#customerView").scrollIntoView({ block: "start" }); return; }
+    if (el.id === "historyPrev" || el.id === "historyNext") return setRange("custom", core.shiftDayKey(selectedRange().endDay, el.id === "historyPrev" ? -1 : 1));
+    if (el.id === "historyRetry") return load();
     if (d.source) { state.source = d.source; state.table = "all"; return render(); }
     if (d.invId) return changeInventory(d.invId, Number(d.invD) || 0);
     if (d.set) {
@@ -743,6 +882,9 @@
       return;
     }
     if (d.print) return printTicket(d.print);
+    if (d.slip) return openSlip(d.slip);
+    if (d.paid) return confirmPayment(d.paid);
+    if (d.confirmPaid) return savePayment(d.confirmPaid);
     if (el.closest("#slipDialog")) {
       if ("close" in d) { slipOrderId = null; return $("#slipDialog").close(); }
     }
@@ -752,6 +894,7 @@
       url.searchParams.set("view", d.view);
       history.replaceState({}, "", url);
       syncViewUI();
+      if (d.view === "kitchen" && state.range !== "today") return setRange("today");
       if (d.view === "tables" && !$("#qrGrid").children.length) genQR();
       return render();
     }
@@ -767,6 +910,8 @@
   });
 
   $("#slipDialog").addEventListener("click", (e) => { if (e.target.id === "slipDialog") { slipOrderId = null; e.currentTarget.close(); } });
+  $("#orderDetails").addEventListener("click", (e) => { if (e.target.id === "orderDetails") { detailOrder = null; e.currentTarget.close(); } });
+  $("#orderDetails").addEventListener("close", () => { detailOrder = null; });
   $("#acceptToggle").addEventListener("change", async (e) => {
     const on = e.target.checked;
     state.settings.accepting_orders = on;
@@ -774,9 +919,9 @@
     try { await api.saveSettings({ accepting_orders: on }); toast(t("saved")); }
     catch (er) { state.settings.accepting_orders = !on; renderTop(); toast(er.message); }
   });
-  $("#rangeSel").addEventListener("change", (e) => setRange(e.target.value));
+  $("#historyRangeSel").addEventListener("change", (e) => setRange(e.target.value));
+  $("#historyDate").addEventListener("change", (e) => setRange("custom", e.target.value));
   $("#tableFilter").addEventListener("change", (e) => { state.table = e.target.value; render(); });
-  $("#dailyRangeSel").addEventListener("change", (e) => setRange(e.target.value));
   window.addEventListener("resize", () => { clearTimeout(render.rt); render.rt = setTimeout(render, 150); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("#dashView").hidden) load(); });
   window.addEventListener("storage", (e) => { if (!api.live && e.key === "mahaduck-demo-orders") load(); });

@@ -80,12 +80,13 @@ window.MAHA_CONFIG = {
   },
   minOrder: 0,            // အနည်းဆုံး order ပမာဏ (฿)
   paymentMethods: ["cash"],
+  onlinePaymentMethods: ["cash"], // Online QR payment remains disabled.
 
   // ---- PromptPay QR ----
   // ဆိုင်ရဲ့ PromptPay နံပါတ် (ဖုန်း 08xxxxxxxx သို့ Tax ID 13 လုံး) ထည့်ရင်
   // Customer ကို ပမာဏပါပြီးသား QR အလိုအလျောက်ပြမယ်။ ဗလာထားရင် "ဆိုင်က QR ပို့ပေးမယ်" လို့ပြမယ်။
-  promptpayId: "004999145373766", // ဆိုင်ရဲ့ K+ Thai QR ထဲက Ref ID (QR ပုံအောက်မှာပါတဲ့နံပါတ်)
-  promptpayName: "MS. HNIN YEE HTUN WIN", // ငွေလက်ခံသူနာမည် (bank app မှာပေါ်မယ့်နာမည်) — customer စစ်လို့ရအောင်
+  promptpayId: "", // Configure privately when QR payments are enabled.
+  promptpayName: "",
 
   // ---- Printer / POS ----
   receiptFooter: "Thank you! · ขอบคุณค่ะ · ကျေးဇူးတင်ပါတယ်",

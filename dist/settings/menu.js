@@ -236,9 +236,9 @@ window.MAHA_MENU = {
       id: "coffee", drinks: true,
       title: { en: "Coffee", th: "กาแฟ", my: "ကော်ဖီ" },
       items: [
-        { id: "moka-black-breeze", code: "C1", name: "Moka Black Breeze", drink: true, drinkGroup: "coffee", price: 55, variants: [
-          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55 },
-          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 65 },
+        { id: "moka-black-breeze", code: "C1", name: "Moka Black Breeze", drink: true, drinkGroup: "coffee", price: 55, img: "images/drinks/moka-black-breeze-hot.webp", variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55, img: "images/drinks/moka-black-breeze-hot.webp" },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 16, price: 65, img: "" },
         ] },
         { id: "velvet-moka-latte", code: "C2", name: "Velvet Moka Latte", drink: true, drinkGroup: "coffee", price: 60, variants: [
           { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 60 },
@@ -257,9 +257,9 @@ window.MAHA_MENU = {
       id: "yogurt", drinks: true,
       title: { en: "Yogurt", th: "โยเกิร์ต", my: "ဒိန်ချဉ်" },
       items: [
-        { id: "strawberry-swirl-oasis", code: "Y1", name: "Strawberry Swirl Oasis", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
-        { id: "golden-mango-velvet", code: "Y2", name: "Golden Mango Velvet", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
-        { id: "dragonfruit-paradise-chill", code: "Y3", name: "Dragonfruit Paradise Chill", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "strawberry-swirl-oasis", code: "Y1", name: "Strawberry Swirl Oasis", drink: true, price: 105, img: "images/drinks/strawberry-swirl-oasis.webp", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "golden-mango-velvet", code: "Y2", name: "Golden Mango Velvet", drink: true, price: 105, img: "images/drinks/golden-mango-velvet.webp", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
+        { id: "dragonfruit-paradise-chill", code: "Y3", name: "Dragonfruit Paradise Chill", drink: true, price: 105, img: "images/drinks/dragonfruit-paradise-chill.webp", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
       ],
     },
     {
@@ -268,7 +268,7 @@ window.MAHA_MENU = {
       items: [
         { id: "grapefruit-ruby-glow", code: "F1", name: "Grapefruit Ruby Glow", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
         { id: "sun-kissed-aloha-tea", code: "F2", name: "Sun-kissed Aloha Tea", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
-        { id: "sunburst-lemon-breeze", code: "F3", name: "Sunburst Lemon Breeze", drink: true, price: 95, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 95 }] },
+        { id: "sunburst-lemon-breeze", code: "F3", name: "Sunburst Lemon Breeze", drink: true, price: 95, img: "images/drinks/sunburst-lemon-breeze.webp", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 95 }] },
         { id: "signature-paradise-medley", code: "F4", name: "Signature Paradise Medley", drink: true, price: 115, badge: "signature", variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 115 }] },
         { id: "sunkist-sunrise-brew", code: "F5", name: "Sunkist Sunrise Brew", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
         { id: "sunlit-mango-nectar", code: "F6", name: "Sunlit Mango Nectar", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
@@ -284,9 +284,9 @@ window.MAHA_MENU = {
           { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 50 },
           { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 75 },
         ] },
-        { id: "velvet-cocoa", code: "D2", name: "Velvet Cocoa", drink: true, price: 55, variants: [
-          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55 },
-          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 80 },
+        { id: "velvet-cocoa", code: "D2", name: "Velvet Cocoa", drink: true, price: 55, img: "images/drinks/velvet-cocoa-iced.webp", variants: [
+          { id: "hot", name: "Hot", th: "ร้อน", my: "အပူ", oz: 8, price: 55, img: "" },
+          { id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 80, img: "images/drinks/velvet-cocoa-iced.webp" },
         ] },
         { id: "choco-forest-shroom", code: "D3", name: "Choco Forest Shroom Velvet Cocoa", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },
         { id: "pink-sakura-shroom", code: "D4", name: "Pink Sakura Shroom Blossom Berry", drink: true, price: 105, variants: [{ id: "iced", name: "Iced", th: "เย็น", my: "အအေး", oz: 22, price: 105 }] },

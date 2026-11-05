@@ -7,7 +7,7 @@
     "'": "&#39;",
   }[char]));
 
-  const money = (value, currency = "฿") => `${currency}${Number(value || 0).toLocaleString("en-US")}`;
+  const money = (value, currency = "฿") => `${currency}${Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
   const flames = (level = 0, icon = "<svg viewBox='0 0 24 24' width='13' height='13' aria-hidden='true'><path fill='currentColor' d='M12 2c1 3-1 4.5-1 6.5 0 1.4 1 2.5 2.3 2.5 1.7 0 1.7-2 1.3-3 2.2 1.6 3.4 4 3.4 6.4a6 6 0 0 1-12 0C6 9 12 7 12 2Z'/></svg>") => {
     if (!level) return "";
@@ -23,6 +23,37 @@
 
   const merge = (base, patch) => ({ ...base, ...patch });
 
+  const shopTimeZone = "Asia/Bangkok";
+  const shopDateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: shopTimeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+  function shopDayKey(value = new Date()) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    const parts = Object.fromEntries(shopDateFormat.formatToParts(date).map((part) => [part.type, part.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }
+  function isDayKey(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }
+  function shiftDayKey(day, days) {
+    if (!isDayKey(day)) throw new RangeError("Invalid order date");
+    const date = new Date(`${day}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  function orderDateRange(range = "today", day, now = new Date()) {
+    const today = shopDayKey(now);
+    const endDay = range === "custom" ? day : range === "yesterday" ? shiftDayKey(today, -1) : today;
+    if (!isDayKey(endDay)) throw new RangeError("Invalid order date");
+    const startDay = shiftDayKey(endDay, range === "7" ? -6 : range === "30" ? -29 : 0);
+    return {
+      startDay, endDay,
+      since: new Date(`${startDay}T00:00:00+07:00`).toISOString(),
+      until: new Date(`${shiftDayKey(endDay, 1)}T00:00:00+07:00`).toISOString(),
+    };
+  }
+
   function drinkExtraGroups(menu, item) {
     if (!item.drink) return [];
     return (menu.drinkExtras || []).map((group) => ({
@@ -33,7 +64,7 @@
   function drinkSelection(menu, item, variantId, extraIds = []) {
     const variant = item.variants.find((entry) => entry.id === variantId) || item.variants[0];
     const extras = drinkExtraGroups(menu, item).flatMap((group) => group.items).filter((extra) => extraIds.includes(extra.id));
-    return { variant, extras, price: variant.price + extras.reduce((total, extra) => total + extra.price, 0) };
+    return { variant, extras, img: variant.img ?? item.img ?? "", price: variant.price + extras.reduce((total, extra) => total + extra.price, 0) };
   }
 
   window.MahaDuckCore = {
@@ -42,6 +73,11 @@
     flames,
     localizeText,
     merge,
+    shopTimeZone,
+    shopDayKey,
+    isDayKey,
+    shiftDayKey,
+    orderDateRange,
     drinkExtraGroups,
     drinkSelection,
   };

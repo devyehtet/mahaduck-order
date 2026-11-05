@@ -1,12 +1,15 @@
-import { createDemoOrder, jsonError, readDemoStore } from "../_store";
+import { createDemoOrder, jsonError, ordersInRange, readDemoStore } from "../_store";
 
 export const runtime = "nodejs";
 
 export async function GET(request) {
-  const since = new URL(request.url).searchParams.get("since");
-  const state = await readDemoStore();
-  const orders = since ? state.orders.filter((order) => order.created_at >= since) : state.orders;
-  return Response.json(orders);
+  try {
+    const params = new URL(request.url).searchParams;
+    const state = await readDemoStore();
+    return Response.json(ordersInRange(state.orders, params.get("since"), params.get("until")));
+  } catch (error) {
+    return jsonError(error);
+  }
 }
 
 export async function POST(request) {

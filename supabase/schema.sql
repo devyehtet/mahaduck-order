@@ -2,7 +2,7 @@
 -- MAHA DUCK — Supabase database setup
 -- Supabase Dashboard → SQL Editor → New query → ဒီ file တစ်ခုလုံး paste → Run
 -- (အောက်ဆုံးက staff email ကို ကိုယ့် email နဲ့ အရင်ပြောင်းပါ)
--- Version 5 (POS + PromptPay + Slip + delivery tracking + inventory). ယခင် version run ပြီးသားဆိုရင်လည်း ဒီ file ကို ထပ် run လို့ရပါတယ်။
+-- Version 6 (online-only VAT 7%, satang-precision QR payments).
 -- =========================================================================
 
 -- 1) Orders ----------------------------------------------------------------
@@ -25,7 +25,7 @@ create table if not exists public.orders (
   items         jsonb not null check (jsonb_typeof(items) = 'array' and jsonb_array_length(items) between 1 and 60),
   subtotal      integer not null check (subtotal >= 0),
   delivery_fee  integer,
-  total         integer not null check (total >= 0),
+  total         numeric(12,2) not null check (total >= 0),
   lang          text
 );
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
@@ -49,6 +49,19 @@ alter table public.orders add constraint orders_payment_check check (payment in 
 alter table public.orders drop constraint if exists orders_map_link_check;
 alter table public.orders add constraint orders_map_link_check
   check (map_link is null or (char_length(map_link) <= 300 and map_link ~* '^https://(maps\.app\.goo\.gl/|maps\.google\.|([a-z0-9-]+\.)?google\.[a-z.]+/maps|goo\.gl/maps/)'));
+
+-- v6: preserve old orders at VAT 0; apply 7% only to new online pickup/delivery orders.
+drop function if exists public.order_status(text);
+drop policy if exists "customers can place orders" on public.orders;
+drop trigger if exists orders_validate_amounts on public.orders;
+alter table public.orders add column if not exists vat_rate smallint not null default 0;
+alter table public.orders add column if not exists vat_amount numeric(12,2) not null default 0;
+alter table public.orders alter column total type numeric(12,2);
+alter table public.orders alter column cash_received type numeric(12,2);
+alter table public.orders drop constraint if exists orders_vat_rate_check;
+alter table public.orders add constraint orders_vat_rate_check check (vat_rate in (0,7));
+alter table public.orders drop constraint if exists orders_vat_amount_check;
+alter table public.orders add constraint orders_vat_amount_check check (vat_amount >= 0);
 
 create or replace function public.validate_order_amounts()
 returns trigger language plpgsql as $$
@@ -79,7 +92,16 @@ begin
   if new.delivery_fee is not null and new.delivery_fee < 0 then
     raise exception 'Invalid delivery fee';
   end if;
-  if new.total <> new.subtotal + coalesce(new.delivery_fee, 0) then
+  if tg_op = 'INSERT' then
+    new.vat_rate := case when new.source = 'online' and new.order_type <> 'dinein' then 7 else 0 end;
+  elsif new.vat_rate is distinct from old.vat_rate then
+    raise exception 'VAT rate cannot be changed on an existing order';
+  end if;
+  if (new.source <> 'online' or new.order_type = 'dinein') and new.vat_rate <> 0 then
+    raise exception 'VAT applies only to online pickup/delivery orders';
+  end if;
+  new.vat_amount := round(new.subtotal * new.vat_rate / 100.0, 2);
+  if new.total <> new.subtotal + coalesce(new.delivery_fee, 0) + new.vat_amount then
     raise exception 'Invalid order total';
   end if;
   if new.cash_received is not null and new.cash_received < 0 then
@@ -95,7 +117,7 @@ exception
 end $$;
 
 drop trigger if exists orders_validate_amounts on public.orders;
-create trigger orders_validate_amounts before insert or update of items, subtotal, delivery_fee, total, cash_received, payment_status
+create trigger orders_validate_amounts before insert or update of items, subtotal, delivery_fee, total, cash_received, payment_status, vat_rate, vat_amount, source, order_type
   on public.orders for each row execute function public.validate_order_amounts();
 
 -- v3: payment slip (customer attaches the transfer slip; staff see it on the dashboard)
@@ -140,7 +162,9 @@ create policy "customers can place orders" on public.orders
   with check (status = 'new' and source = 'online' and payment_status = 'unpaid'
               and cash_received is null and has_slip = false
               and delivery_provider is null and delivery_started_at is null
-              and total = subtotal + coalesce(delivery_fee, 0));
+              and vat_rate = case when order_type <> 'dinein' then 7 else 0 end
+              and vat_amount = round(subtotal * vat_rate / 100.0, 2)
+              and total = subtotal + coalesce(delivery_fee, 0) + vat_amount);
 
 drop policy if exists "staff create orders (POS)" on public.orders;
 create policy "staff create orders (POS)" on public.orders
@@ -165,7 +189,7 @@ create policy "staff update settings" on public.settings
 -- 5) Customers can check status and delivery handoff for their order code --
 drop function if exists public.order_status(text);
 create function public.order_status(p_code text)
-returns table (status text, total integer, created_at timestamptz, payment_status text, order_type text, delivery_provider text, delivery_started_at timestamptz)
+returns table (status text, total numeric, created_at timestamptz, payment_status text, order_type text, delivery_provider text, delivery_started_at timestamptz)
 language sql stable security definer set search_path = public as $$
   select o.status, o.total, o.created_at, o.payment_status, o.order_type, o.delivery_provider, o.delivery_started_at from public.orders o where o.code = upper(trim(p_code)) limit 1;
 $$;

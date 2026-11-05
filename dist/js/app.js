@@ -12,6 +12,9 @@
 
   const params = new URLSearchParams(location.search);
   const tableParam = (params.get("table") || "").replace(/[^\w-]/g, "").slice(0, 8);
+  const paymentChoices = (tableParam ? CFG.paymentMethods : CFG.onlinePaymentMethods) || ["cash"];
+  const paymentMethods = paymentChoices.filter((method) => ["cash", "promptpay"].includes(method));
+  if (!paymentMethods.length) paymentMethods.push("cash");
   const navLang = (navigator.language || "en").slice(0, 2);
   const state = {
     lang: S.get("mahaduck-lang", ["th", "my"].includes(navLang) ? navLang : "en"),
@@ -22,7 +25,7 @@
     customer: S.get("mahaduck-customer", { name: "", phone: "", address: "", map: "" }),
     dest: S.get("mahaduck-dest", null), // { lat, lng, label, src: "gps" | "area" }
     destOther: false,
-    payment: (CFG.paymentMethods && CFG.paymentMethods[0]) || "cash",
+    payment: paymentMethods[0],
     pickup: "asap",
     settings: { accepting_orders: true, notice: "", inventory: {} },
     cartView: "cart", // cart | checkout | success | orders
@@ -97,6 +100,17 @@
   const saveCart = () => S.set("mahaduck-cart", state.cart);
   const cartCount = () => state.cart.reduce((n, l) => n + l.qty, 0);
   const subtotal = () => state.cart.reduce((n, l) => n + l.unitPrice * l.qty, 0);
+  const cartTotals = () => window.MahaOrderTotals.orderTotals(subtotal(), {
+    source: "online", order_type: tableParam ? "dinein" : "pickup", delivery_fee: null,
+  });
+
+  function paymentOptionsHtml() {
+    if (!paymentMethods.includes(state.payment)) state.payment = paymentMethods[0];
+    if (paymentMethods.length < 2) return "";
+    return `<div class="field"><span>${t("payment")}</span><div class="pay-opts" role="radiogroup" aria-label="${esc(t("payment"))}">${paymentMethods
+      .map((method) => `<button type="button" class="pay-opt" role="radio" aria-checked="${state.payment === method}" data-pay="${method}"><strong>${t(method)}</strong><small>${t(method + "Sub")}</small></button>`)
+      .join("")}</div></div>`;
+  }
   // ---------- delivery fee (distance-based, Grab-style rate card) ----------
   const DLV = CFG.delivery && typeof CFG.delivery.shopLat === "number" ? CFG.delivery : null;
   function roadKm(lat, lng) {
@@ -194,7 +208,7 @@
     const bar = $("#orderbar");
     bar.hidden = n === 0;
     $("#orderbarCount").textContent = n;
-    $("#orderbarTotal").textContent = money(subtotal());
+    $("#orderbarTotal").textContent = money(cartTotals().total);
     const typeSwitch = $("#typeSwitch");
     typeSwitch.hidden = orderTypes.length <= 1;
     if (!typeSwitch.hidden) typeOptions(typeSwitch);
@@ -244,6 +258,10 @@
   }
 
   function cardMedia(it) {
+    if (it.drink && it.img) {
+      const serving = it.variants.length > 1 && it.variants.find((v) => v.img === it.img);
+      return `<div class="card-media drink-photo"><img src="${it.img}" alt="${esc(it.name + (serving ? ` · ${local(serving)}` : ""))}" loading="lazy" width="800" height="1000" /><span class="drink-code">${esc(it.code)}</span>${serving ? `<span class="drink-photo-serving">${esc(local(serving))} · ${serving.oz} oz</span>` : ""}</div>`;
+    }
     if (it.drink) return `<div class="drink-code">${esc(it.code)}</div>`;
     if (it.img) {
       const plate = /dish-|style-/.test(it.img);
@@ -268,7 +286,7 @@
               const q = inCartQty(it.id);
               const soon = it.price == null;
               const badge = it.badge ? `<span class="badge ${it.badge === "signature" ? "red" : ""}">${t(it.badge)}</span>` : "";
-              return `<article class="card ${it.drink ? "card-drink" : ""}">
+              return `<article class="card ${it.drink ? "card-drink" : ""} ${it.drink && it.img ? "has-photo" : ""}">
                 ${badge}${q ? `<span class="in-cart" aria-label="${q} in order">${q}</span>` : ""}
                 ${cardMedia(it)}
                 <div class="card-body">
@@ -678,11 +696,13 @@
   function renderItemSheet() {
     const { it } = itemState;
     const meat = meatOf(it, itemState.meat);
-    const unit = it.drink ? core.drinkSelection(MENU, it, itemState.variant, itemState.extras).price : meat ? meat.price : it.price;
-    const plate = it.img && /dish-|style-/.test(it.img);
+    const drink = it.drink ? core.drinkSelection(MENU, it, itemState.variant, itemState.extras) : null;
+    const unit = drink ? drink.price : meat ? meat.price : it.price;
+    const img = drink ? drink.img : it.img;
+    const plate = img && /dish-|style-/.test(img);
     $("#itemTitle").textContent = local(it);
     let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">
-      ${it.img ? `<img src="${it.img}" alt="" style="width:84px;height:84px;object-fit:${plate ? "contain" : "cover"};border-radius:${plate ? "50%" : "14px"}" />` : ""}
+      ${img ? `<img src="${img}" alt="" style="width:84px;height:84px;object-fit:${plate || drink ? "contain" : "cover"};border-radius:${plate ? "50%" : "14px"}" />` : ""}
       <div><strong style="font-size:17px">${esc(local(it))}</strong><div style="color:var(--muted);font-size:13px">${esc(sub(it))}</div><div class="price" style="margin-top:4px">${money(unit)}</div></div></div>`;
     if (it.desc) html += `<p class="hint" style="margin:6px 0 0">${esc(tx(it.desc))}</p>`;
     if (it.drink) {
@@ -722,7 +742,7 @@
       name: meat ? (it.base ? `${it.base} ${meat.name}` : `${it.name} · ${meat.name}`) : it.name,
       th: meat ? `${it.th} · ${meat.th}` : it.th,
       my: meat ? `${it.my || (it.base ? it.base : it.name)} · ${meat.my || meat.name}` : it.my || "",
-      img: it.img || "", unitPrice: drink ? drink.price : meat ? meat.price : it.price, qty: itemState.qty, options: opts,
+      img: drink ? drink.img : it.img || "", unitPrice: drink ? drink.price : meat ? meat.price : it.price, qty: itemState.qty, options: opts,
     };
     if (itemState.editKey) {
       state.cart = state.cart.filter((l) => l.key !== itemState.editKey);
@@ -770,7 +790,7 @@
   function lineImg(l) {
     if (!l.img) return `<img src="images/brand/icon-512.png?v=2026-10-06-logo" alt="" />`;
     const plate = /dish-|style-/.test(l.img);
-    return `<img class="${plate ? "plate" : ""}" src="${l.img}" alt="" />`;
+    return `<img class="${plate ? "plate" : /images\/drinks\//.test(l.img) ? "drink" : ""}" src="${l.img}" alt="" />`;
   }
 
   function openCart(view) {
@@ -799,12 +819,14 @@
     }
     foot.hidden = false;
     const sub = subtotal();
+    const totals = cartTotals();
     const fee = deliveryFee();
     const q = quote();
     const feeLabel = state.type !== "delivery" ? null : q.known ? (q.fee ? money(q.fee) : t("free")) + (q.km != null ? ` <small>(~${kmText(q.km)})</small>` : "") : `<small>${t("byShop")}</small>`;
     const totalsHtml = `<div class="totals"><div><span>${t("subtotal")}</span><span>${money(sub)}</span></div>
+      ${totals.vat_rate ? `<div><span>${t("vat")} ${totals.vat_rate}%</span><span>${money(totals.vat_amount)}</span></div>` : ""}
       ${feeLabel ? `<div><span>${t("deliveryFee")}</span><span>${feeLabel}</span></div>` : ""}
-      <div class="grand"><span>${t("total")}</span><b>${money(sub + fee)}</b></div></div>`;
+      <div class="grand"><span>${t("total")}</span><b>${money(totals.total + fee)}</b></div></div>`;
 
     if (state.cartView === "cart") {
       body.innerHTML = state.cart
@@ -816,9 +838,9 @@
             <div class="stepper"><button type="button" data-q="${i}" data-d="-1" aria-label="${t("remove")}">${l.qty === 1 ? '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 12H7L6 9Z"/></svg>' : "−"}</button><output>${l.qty}</output><button type="button" class="plus" data-q="${i}" data-d="1" aria-label="+">+</button></div></div></div>
         </div>`
         )
-        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + (tableParam ? `<p class="cart-table">${esc(t("tableBanner"))} <strong>${esc(tableParam)}</strong></p>` : "") + totalsHtml + `<p class="form-error" id="formError" role="alert"></p>`;
+        .join("") + (BOWL_ON ? `<button class="btn btn-line" type="button" data-open-builder style="width:100%;margin-top:6px">+ ${t("secBowl")}</button>` : `<button class="btn btn-line" type="button" data-close-cart style="width:100%;margin-top:6px">+ ${t("addMore")}</button>`) + (tableParam ? `<p class="cart-table">${esc(t("tableBanner"))} <strong>${esc(tableParam)}</strong></p>` : "") + totalsHtml + (!tableParam ? paymentOptionsHtml() : "") + `<p class="form-error" id="formError" role="alert"></p>`;
       const minOk = sub >= (CFG.minOrder || 0);
-      foot.innerHTML = `<button class="btn btn-red btn-grow" type="button" id="placeOrder" ${minOk ? "" : "disabled"}>${minOk ? t("placeOrder") : `${t("minOrder")} ${money(CFG.minOrder)}`} · ${money(sub + fee)}</button>`;
+      foot.innerHTML = `<button class="btn btn-red btn-grow" type="button" id="placeOrder" ${minOk ? "" : "disabled"}>${minOk ? t("placeOrder") : `${t("minOrder")} ${money(CFG.minOrder)}`} · ${money(totals.total + fee)}</button>`;
       return;
     }
 
@@ -860,13 +882,7 @@
         .map((x) => `<button type="button" role="radio" aria-checked="${state.pickup === x.v}" data-pick="${x.v}">${esc(x.l)}</button>`)
         .join("")}</div></div>`;
     }
-    const paymentMethods = CFG.paymentMethods && CFG.paymentMethods.length ? CFG.paymentMethods : ["cash"];
-    if (!paymentMethods.includes(state.payment)) state.payment = paymentMethods[0];
-    if (paymentMethods.length > 1) {
-      fields += `<div class="field"><span>${t("payment")}</span><div class="pay-opts" role="radiogroup">${paymentMethods
-        .map((p) => `<button type="button" class="pay-opt" role="radio" aria-checked="${state.payment === p}" data-pay="${p}"><strong>${t(p)}</strong><small>${t(p + "Sub")}</small></button>`)
-        .join("")}</div></div>`;
-    }
+    fields += paymentOptionsHtml();
     fields += `<label class="field"><span>${t("noteLabel")}</span><textarea id="fNote" rows="2" maxlength="300" placeholder="${esc(t("notePh"))}"></textarea></label>`;
     fields += totalsHtml;
     if (!api.live) fields += `<p class="demo-chip">${t("demoNote")}</p>`;
@@ -875,7 +891,7 @@
     typeOptions($("#cartType"));
     const closed = !state.settings.accepting_orders;
     foot.innerHTML = `<button class="btn btn-line" type="button" id="toCart">${t("back")}</button>
-      <button class="btn btn-red btn-grow" type="button" id="placeOrder" ${closed ? "disabled" : ""}>${closed ? t("paused") : t("placeOrder") + " · " + money(sub + fee)}</button>`;
+      <button class="btn btn-red btn-grow" type="button" id="placeOrder" ${closed ? "disabled" : ""}>${closed ? t("paused") : t("placeOrder") + " · " + money(totals.total + fee)}</button>`;
   }
 
   function pickupTimes() {
@@ -931,11 +947,11 @@
     $("#formError").textContent = "";
     const c = state.customer;
     const sub = subtotal();
+    const totals = cartTotals();
     const orderType = tableParam ? "dinein" : "pickup";
-    const fee = 0;
     const resetButton = () => {
       btn.disabled = false;
-      btn.textContent = t("placeOrder") + " · " + money(sub + fee);
+      btn.textContent = t("placeOrder") + " · " + money(totals.total);
     };
     try {
       state.settings = normalizeSettings(await api.getSettings());
@@ -958,20 +974,21 @@
       address: null,
       map_link: null,
       pickup_time: tableParam ? null : "ASAP",
-      payment: "cash",
+      payment: tableParam ? "cash" : state.payment,
       note: null,
       items: state.cart.map((l) => ({
         name: l.name, th: l.th || "", qty: l.qty, unit_price: l.unitPrice, line_total: l.unitPrice * l.qty, details: optionLines(l, true), inventory_ids: inventoryIdsForLine(l),
       })),
       subtotal: sub,
       delivery_fee: null,
-      total: sub + fee,
+      ...totals,
       lang: state.lang,
     };
     try {
       const saved = await api.createOrder(order);
       state.lastOrder = {
         code: saved.code, total: saved.total, created_at: saved.created_at, type: saved.order_type, order_type: saved.order_type, table_no: saved.table_no, status: "new",
+        subtotal: saved.subtotal, vat_rate: saved.vat_rate, vat_amount: saved.vat_amount,
         payment: saved.payment, payment_status: "unpaid", feeUnknown: false,
       };
       state.myOrders = [state.lastOrder, ...state.myOrders.filter((o) => o.code !== saved.code)].slice(0, 20);
@@ -1051,7 +1068,7 @@
   }
 
   function payHtml(o) {
-    if (o.payment !== "promptpay") return "";
+    if (!paymentMethods.includes("promptpay") || o.payment !== "promptpay" || o.status === "cancelled") return "";
     if (o.payment_status === "paid") return `<div class="pay-card paid"><strong>✓ ${t("paidOk")}</strong></div>`;
     if (!CFG.promptpayId) return `<div class="pay-card"><strong>${t("payTitle")}</strong><p>${t("payLater")}</p>${slipHtml(o)}</div>`;
     const amount = o.feeUnknown ? undefined : o.total;
@@ -1076,11 +1093,11 @@
     const o = state.lastOrder;
     title.textContent = t("orderCode") + " " + o.code;
     foot.hidden = false;
-    body.innerHTML = `<div class="success"><img src="images/mascot/duck-welcome.webp" alt="" />
+    body.innerHTML = `<div class="success">${o.payment === "promptpay" && o.payment_status !== "paid" && o.status !== "cancelled" ? "" : `<img src="images/mascot/duck-welcome.webp" alt="" />`}
       <h3>${t("thanks")}</h3><p style="color:var(--muted)">${t("thanksSub")}</p>
       <div class="code-box">${esc(o.code)}</div>
       ${o.table_no ? `<p class="cart-table">${esc(t("tableBanner"))} <strong>${esc(o.table_no)}</strong></p>` : ""}
-      <p><strong>${money(o.total)}</strong></p>
+      ${o.vat_rate ? `<div class="totals" style="width:100%"><div><span>${t("subtotal")}</span><span>${money(o.subtotal)}</span></div><div><span>${t("vat")} ${o.vat_rate}%</span><span>${money(o.vat_amount)}</span></div><div class="grand"><span>${t("total")}</span><b>${money(o.total)}</b></div></div>` : `<p><strong>${money(o.total)}</strong></p>`}
       <div id="payBox" style="width:100%">${payHtml(o)}</div>
       <div id="trackerBox" style="width:100%">${trackerHtml(o.status, o.order_type || o.type, o.delivery_provider, o.delivery_started_at)}</div>
       ${!api.live ? `<p class="demo-chip">${t("demoNote")}</p>` : ""}</div>`;
@@ -1092,6 +1109,8 @@
           Object.assign(o, { status: s.status, order_type: s.order_type || o.order_type || o.type, delivery_provider: s.delivery_provider, delivery_started_at: s.delivery_started_at });
           const box = $("#trackerBox");
           if (box) box.innerHTML = trackerHtml(o.status, o.order_type, o.delivery_provider, o.delivery_started_at);
+          const payBox = $("#payBox");
+          if (payBox) payBox.innerHTML = payHtml(o);
         }
         if (s && s.payment_status && s.payment_status !== o.payment_status) { o.payment_status = s.payment_status; const pb = $("#payBox"); if (pb) pb.innerHTML = payHtml(o); }
         persistMine(o);

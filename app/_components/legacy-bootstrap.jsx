@@ -6,6 +6,7 @@ const scripts = {
   customer: [
     "/api/runtime-config",
     "/legacy/settings/menu.js",
+    "/legacy/js/order-totals.cjs",
     "/legacy/js/api.js",
     "/legacy/js/i18n.js",
     "/legacy/js/core.js",
@@ -17,6 +18,7 @@ const scripts = {
   admin: [
     "/api/runtime-config",
     "/legacy/settings/menu.js",
+    "/legacy/js/order-totals.cjs",
     "/legacy/js/api.js",
     "/legacy/js/i18n.js",
     "/legacy/js/core.js",
@@ -25,7 +27,7 @@ const scripts = {
   ],
 };
 
-const legacyAssetVersion = "2026-10-06-ingredient-images";
+const legacyAssetVersion = "2026-11-05-drink-photos";
 
 function scriptUrl(src) {
   if (!src.startsWith("/legacy/")) return src;
@@ -35,6 +37,7 @@ function scriptUrl(src) {
 function isScriptReady(src) {
   if (src === "/api/runtime-config") return Boolean(window.MAHA_CONFIG);
   if (src === "/legacy/settings/menu.js") return Boolean(window.MAHA_MENU);
+  if (src === "/legacy/js/order-totals.cjs") return Boolean(window.MahaOrderTotals);
   if (src === "/legacy/js/api.js") return Boolean(window.MahaAPI);
   if (src === "/legacy/js/i18n.js") return Boolean(window.MAHA_I18N);
   if (src === "/legacy/js/core.js") return Boolean(window.MahaDuckCore);
